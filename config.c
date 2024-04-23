@@ -12,6 +12,6 @@ const int pollingGranularity = 4; //how often to poll backend in seconds, 4 make
 const int dataLoggingGranularity = 300; //how often to store data in backend, 300 makes sense
 const int connectionFailureRetrySeconds = 4;
 const int connectionRetryNumber = 22;
-
+const int hiatusLengthOfUiUpdatesAfterUserInteraction = 35;
 const int granularityWhenInConnectionFailureMode = 5; //40 was too little time for everything to come up and start working reliably, at least with my sketchy cellular connection
  
