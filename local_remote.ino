@@ -1,11 +1,7 @@
-/* @file CustomKeypad.pde
-|| @version 1.0
-|| @author Alexander Brevig
-|| @contact alexanderbrevig@gmail.com
-||
-|| @description
-|| | Demonstrates changing the keypad size and key values.
-|| #
+/* 
+Local Remote, Gus Mueller, April 22 2024
+Provides a local control-panel for the remote-control system here:
+https://github.com/judasgutenberg/Esp8266_RemoteControl
 */
 #include <ArduinoJson.h>
 #include <ESP8266WiFi.h>
