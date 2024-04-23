@@ -13,5 +13,4 @@ extern const int pollingGranularity; //how often to poll backend in seconds, 4 m
 extern const int dataLoggingGranularity; //how often to store data in backend, 300 makes sense
 extern const int connectionFailureRetrySeconds;
 extern const int connectionRetryNumber;
- 
- 
+extern const int hiatusLengthOfUiUpdatesAfterUserInteraction;
