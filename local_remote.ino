@@ -11,7 +11,7 @@ https://github.com/judasgutenberg/Esp8266_RemoteControl
 
 #include "config.h"
 
-LiquidCrystal_I2C lcd(0x27,20,4); 
+
 
 void ICACHE_RAM_ATTR buttonPushed();
 StaticJsonDocument<1000> jsonBuffer;
@@ -28,8 +28,12 @@ String localCopyOfJson;
 long connectionFailureTime = 0;
 bool connectionFailureMode = false;
 long timeOutForServerDataUpdates;
-char menuCursor =0;
-signed char maxLines = 1;
+char menuCursor = 0;
+char menuBegin = 0;
+signed char totalMenuItems = 1;
+char totalScreenLines = 4;
+
+LiquidCrystal_I2C lcd(0x27,20,totalScreenLines); 
 
 void setup(){
   WiFiConnect();
@@ -146,7 +150,7 @@ void getJson() {
       if(retLine.charAt(0) == '{') {
         Serial.println(retLine);
         localCopyOfJson = (String)retLine.c_str();
-        updateScreen(localCopyOfJson);
+        updateScreen(localCopyOfJson, 0);
         receivedDataJson = true;
         break; 
       } else {
@@ -163,62 +167,99 @@ void getJson() {
 }
 
 
-void updateScreen(String json) {
+void updateScreen(String json, char startLine) {
+  lcd.clear();
+  if(specialUrl != "") {
+    return;
+  }
+  if(startLine == 0) {
+    //menuBegin = 0;
+    //menuCursor = 0;
+  }
   lcd.backlight();
   int value = -1;
   int serverSaved = 0;
   String friendlyPinName = "";
   String id = "";
-  DeserializationError error = deserializeJson(jsonBuffer, json);
- 
+  if(json != "") {
+    DeserializationError error = deserializeJson(jsonBuffer, json);
+  }
   if(jsonBuffer["device"]) { //deviceName is a global
     deviceName = (String)jsonBuffer["device"];
   }
   char * nodeName="pins";
   if(jsonBuffer[nodeName]) {
+    char totalShown = 0;
+    totalMenuItems = jsonBuffer[nodeName].size();
     for(int i=0; i<jsonBuffer[nodeName].size(); i++) {
-      lcd.setCursor(0, i);
-      friendlyPinName = (String)jsonBuffer[nodeName][i]["name"];
-      Serial.println(friendlyPinName);
-      value = (int)jsonBuffer[nodeName][i]["value"];
-      id = (String)jsonBuffer[nodeName][i]["id"];
-      if(value == 1) {
-        lcd.print(" *" + friendlyPinName);
-      } else {
-        lcd.print("  " + friendlyPinName);
+      if(i >= startLine && totalShown < totalScreenLines) {
+        lcd.setCursor(0, i - startLine);
+        friendlyPinName = (String)jsonBuffer[nodeName][i]["name"];
+        Serial.println(friendlyPinName);
+        value = (int)jsonBuffer[nodeName][i]["value"];
+        id = (String)jsonBuffer[nodeName][i]["id"];
+        if(value == 1) {
+          lcd.print(" *" + friendlyPinName);
+        } else {
+          lcd.print("  " + friendlyPinName);
+        }
+        totalShown++; 
       }
-       maxLines = i;
     }
      
   }
-  Serial.print("max lines:");
-  Serial.println((int)maxLines);
+  Serial.print("total menu items:");
+  Serial.println((int)totalMenuItems);
 }
 
 
 void moveCursorUp(){
-  Serial.println("up");
-  Serial.println((int)menuCursor);
+  Serial.print("up: ");
+  Serial.print((int)menuCursor);
+  Serial.println(" * " );
   lcd.setCursor(0, menuCursor);
   lcd.print(" ");
-  menuCursor--;
-  if(menuCursor < 0  || menuCursor > 250) {
-    menuCursor = 0;
+ 
+  if(menuBegin > 0) {
+    //scroll screen up:
+    menuBegin--;
+    updateScreen("", menuBegin);
+  } else {
+    menuCursor--;
+    if(menuCursor < 0  || menuCursor > 250) {
+      Serial.print(" less than zero ");
+      Serial.println((int)menuCursor);
+      menuCursor = 0;
+    }
+  }
+  if(menuCursor == totalScreenLines) {
+    menuCursor = totalScreenLines - 2;
   }
   lcd.setCursor(0, menuCursor);
   lcd.print(">");
   Serial.println((int)menuCursor);
 }
 void moveCursorDown(){
-  Serial.println("down");
-  Serial.println((int)menuCursor);
+  Serial.println("down: ");
+  Serial.print((int)menuCursor);
   lcd.setCursor(0, menuCursor);
   lcd.print(" ");
   menuCursor++;
-  if(menuCursor > maxLines) {
-    menuCursor = maxLines;
+
+  if(menuCursor > totalMenuItems-1) {
+    menuCursor = totalMenuItems-1;
   }
-  lcd.setCursor(0, menuCursor);
+  if(menuCursor > totalScreenLines - 1) {
+    //scroll screen up:
+    menuBegin = menuCursor-(totalScreenLines - 1);
+    Serial.print(" Menu begin: ");
+    Serial.println((int)menuBegin);
+    updateScreen("", menuBegin);
+    lcd.setCursor(0, totalScreenLines - 1);
+  } else {
+    lcd.setCursor(0, menuCursor);
+  }
+  
   lcd.print(">");
   Serial.println((int)menuCursor);
 }
