@@ -59,7 +59,7 @@ void loop(){
       //Serial.print(digitalRead(buttonPins[i]));
   }
   //Serial.println();
-  if(specialUrl != "" || (millis() % 5000  == 0 && ( millis() - timeOutForServerDataUpdates > hiatusLengthOfUiUpdatesAfterUserInteraction * 1000 || timeOutForServerDataUpdates == 0))) {
+  if(totalMenuItems == 0 || specialUrl != "" || (millis() % 5000  == 0 && ( millis() - timeOutForServerDataUpdates > hiatusLengthOfUiUpdatesAfterUserInteraction * 1000 || timeOutForServerDataUpdates == 0))) {
     getJson();
   }
   
@@ -150,7 +150,7 @@ void getJson() {
       if(retLine.charAt(0) == '{') {
         Serial.println(retLine);
         localCopyOfJson = (String)retLine.c_str();
-        updateScreen(localCopyOfJson, 0);
+        updateScreen(localCopyOfJson, 0, false);
         receivedDataJson = true;
         break; 
       } else {
@@ -167,14 +167,17 @@ void getJson() {
 }
 
 
-void updateScreen(String json, char startLine) {
+void updateScreen(String json, char startLine, bool withInit) {
   lcd.clear();
   if(specialUrl != "") {
     return;
   }
-  if(startLine == 0) {
-    //menuBegin = 0;
-    //menuCursor = 0;
+  if(withInit == true) {
+    menuBegin = 0;
+    menuCursor = 0;
+  }
+  if(startLine == 0){
+    menuBegin = 0;
   }
   lcd.backlight();
   int value = -1;
@@ -223,7 +226,7 @@ void moveCursorUp(){
   if(menuBegin > 0) {
     //scroll screen up:
     menuBegin--;
-    updateScreen("", menuBegin);
+    updateScreen("", menuBegin, false);
   } else {
     menuCursor--;
     if(menuCursor < 0  || menuCursor > 250) {
@@ -254,7 +257,7 @@ void moveCursorDown(){
     menuBegin = menuCursor-(totalScreenLines - 1);
     Serial.print(" Menu begin: ");
     Serial.println((int)menuBegin);
-    updateScreen("", menuBegin);
+    updateScreen("", menuBegin, false);
     lcd.setCursor(0, totalScreenLines - 1);
   } else {
     lcd.setCursor(0, menuCursor);
