@@ -8,22 +8,33 @@ https://github.com/judasgutenberg/Esp8266_RemoteControl
 #include <WiFiClient.h>
 #include <ESP8266WebServer.h>
 #include <LiquidCrystal_I2C.h>
+#include <ESP_EEPROM.h>
 
 #include "config.h"
 
+//so far i have failed to get the "EEProm" to work
+struct nonVolatileStruct {
+  char  controlIpAddress[30];
+  char  weatherIpAddress[30];
+} eepromData;
 
 
 void ICACHE_RAM_ATTR buttonPushed();
 StaticJsonDocument<1000> jsonBuffer;
+StaticJsonDocument<2000> deviceJsonBuffer;  //this has to be big for some reason
 String deviceName = "Your Device";
 String specialUrl = "";
-String ipAddress;
-const byte pinNumber = 4;
-byte buttonPins[pinNumber] = {14, 12, 13, 15}; //connect to the column pinouts of the keypad left to right: 13, 15, 12, 14
+String ourIpAddress;
+
+String controlIpAddress; //would like to store in EEPROM
+String weatherIpAddress; //would like to store in EEPROM
+ 
+const byte buttonNumber = 4;
 byte buttonMode = 13;
 byte buttonUp = 15;
 byte buttonDown = 12;
 byte buttonChange = 14;
+byte buttonPins[buttonNumber] = {buttonChange, buttonDown, buttonMode, buttonUp}; //connect to the column pinouts of the keypad left to right: 13, 15, 12, 14
 String localCopyOfJson;
 long connectionFailureTime = 0;
 bool connectionFailureMode = false;
@@ -32,35 +43,52 @@ char menuCursor = 0;
 char menuBegin = 0;
 signed char totalMenuItems = 1;
 char totalScreenLines = 4;
+String deviceJson = "";
 
 LiquidCrystal_I2C lcd(0x27,20,totalScreenLines); 
 
 void setup(){
-  WiFiConnect();
   Serial.begin(115200);
-  for(char i=0; i<pinNumber; i++) {
+  Serial.println("Starting up Local Remote");
+  WiFiConnect();
+  for(char i=0; i<buttonNumber; i++) {
     pinMode(buttonPins[i], OUTPUT); //seems to work to make an unconnected INPUT default as low
     //Serial.println(digitalPinToInterrupt(buttonPins[i]));
     attachInterrupt(digitalPinToInterrupt(buttonPins[i]), buttonPushed, CHANGE);
   }
  
- 
-
+  EEPROM.begin(sizeof(nonVolatileStruct));
+  if(EEPROM.percentUsed()>=0) {
+    EEPROM.get(0, eepromData);
+    Serial.println("EEPROM has data from a previous run.");
+    Serial.print(EEPROM.percentUsed());
+    Serial.println("% of ESP flash space currently used");
+    controlIpAddress = (String) eepromData.controlIpAddress;
+    weatherIpAddress = (String) eepromData.weatherIpAddress;
+  } else {
+    Serial.println("EEPROM size changed - EEPROM data zeroed - commit() to make permanent");    
+  }
+  
   // set up the LCD's number of rows and columns:
   lcd.init();
-  Serial.println("Starting up Local Remote");
+ 
 
   // Print a message to the LCD.
  
 }
   
 void loop(){
-  for(char i=0; i<pinNumber; i++) {
+  for(char i=0; i<buttonNumber; i++) {
       //Serial.print(digitalRead(buttonPins[i]));
   }
   //Serial.println();
   if(totalMenuItems == 0 || specialUrl != "" || (millis() % 5000  == 0 && ( millis() - timeOutForServerDataUpdates > hiatusLengthOfUiUpdatesAfterUserInteraction * 1000 || timeOutForServerDataUpdates == 0))) {
-    getJson();
+    
+    if(deviceJson == "") {
+      getDeviceInfo();
+    } else {
+      getJson();
+    }
   }
   
  
@@ -87,27 +115,131 @@ void WiFiConnect() {
   Serial.print("Connected to ");
   Serial.println(ssid);
   Serial.print("IP address: ");
-  ipAddress =  WiFi.localIP().toString();
+  ourIpAddress =  WiFi.localIP().toString();
   Serial.println(WiFi.localIP());  //IP address assigned to your ESP
 }
 
+
+void getDeviceInfo() { //goes on the internet to get the latest ip addresses of the various things to connect to. otherwise get them from like EEPROM
+  WiFiClient clientGet;
+  const int httpGetPort = 80;
+  String url;
+  url = "/weather/data.php?storagePassword=" + (String)storagePassword + "&mode=getDevices";
+
+  char * dataSourceHost = "randomsprocket.com";
+  int attempts = 0;
+  while(!clientGet.connect(dataSourceHost, httpGetPort) && attempts < connectionRetryNumber) {
+    attempts++;
+    delay(200);
+  }
+  Serial.println();
+  if (attempts >= connectionRetryNumber) {
+    Serial.print("Device info connection failed");
+    clientGet.stop();
+    return;
+  } else {
+ 
+     Serial.println(url);
+     clientGet.println("GET " + url + " HTTP/1.1");
+     clientGet.print("Host: ");
+     clientGet.println(dataSourceHost);
+     clientGet.println("User-Agent: ESP8266/1.0");
+     clientGet.println("Accept-Encoding: identity");
+     clientGet.println("Connection: close\r\n\r\n");
+     unsigned long timeoutP = millis();
+     while (clientGet.available() == 0) {
+       if (millis() - timeoutP > 10000) {
+
+        if(clientGet.connect(dataSourceHost, httpGetPort)){
+         //timeOffset = timeOffset + timeSkewAmount; //in case two probes are stepping on each other, make this one skew a 20 seconds from where it tried to upload data
+         clientGet.println("GET / HTTP/1.1");
+         clientGet.print("Host: ");
+         clientGet.println(dataSourceHost);
+         clientGet.println("User-Agent: ESP8266/1.0");
+         clientGet.println("Accept-Encoding: identity");
+         clientGet.println("Connection: close\r\n\r\n");
+        }//if (clientGet.connect(
+        //clientGet.stop();
+        return;
+       } //if( millis() -  
+     }
+    delay(2); //see if this improved data reception. OMG IT TOTALLY WORKED!!!
+ 
+    while(clientGet.available()){
+      String retLine = clientGet.readStringUntil('\r');//when i was reading string until '\n' i didn't get any JSON most of the time!
+      retLine.trim();
+      if(retLine.charAt(0) == '{') {
+        Serial.println(retLine);
+        deviceJson = (String)retLine.c_str();
+        DeserializationError error = deserializeJson(deviceJsonBuffer, deviceJson);
+        String ipAddress;
+        int deviceId;
+        Serial.println((int)deviceJsonBuffer["devices"].size());
+        bool eepromUpdateNeeded = false;
+        
+        for(int i=0; i<deviceJsonBuffer["devices"].size(); i++) {
+            ipAddress = (String)deviceJsonBuffer["devices"][i]["ip_address"];
+            deviceId = (int)deviceJsonBuffer["devices"][i]["device_id"];
+            Serial.print(ipAddress);
+            Serial.print(" ");
+            Serial.println(deviceId);
+            if(deviceId == (int)weatherDevice){
+              if(weatherIpAddress != ipAddress){
+                weatherIpAddress = ipAddress; 
+                const char* cString = weatherIpAddress.c_str();
+                std::strncpy(eepromData.weatherIpAddress, cString, sizeof(eepromData.weatherIpAddress));
+                eepromData.weatherIpAddress[sizeof(eepromData.weatherIpAddress) - 1] = '\0';
+                eepromUpdateNeeded = true;
+              }            
+            } else if(deviceId == (int)controlDevice){
+              if(controlIpAddress != ipAddress){
+                controlIpAddress = ipAddress; 
+                const char* cString = controlIpAddress.c_str();
+                std::strncpy(eepromData.controlIpAddress, cString, sizeof(eepromData.controlIpAddress));
+                eepromData.controlIpAddress[sizeof(eepromData.controlIpAddress) - 1] = '\0';
+                eepromUpdateNeeded = true;
+              }
+
+            }
+          
+        }
+        if(eepromUpdateNeeded) {
+          EEPROM.put(0, eepromData);
+          if(!EEPROM.commit()){
+            Serial.println("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxEeprom update failed.");
+          } else {
+            Serial.println("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxEeprom update SUCCEEDED!!!!.");
+          }
+        }
+      } else {
+        Serial.print("device non-JSON line returned: ");
+        Serial.println(retLine);
+      }
+    }
+  }  
+  clientGet.stop();
+}
+
 void getJson() {
+  Serial.print("control ip address:");
+  Serial.println(controlIpAddress);
   WiFiClient clientGet;
   const int httpGetPort = 80;
   String url;
   if(specialUrl != "") {
     url =  (String)specialUrl;
     specialUrl = "";
-    timeOutForServerDataUpdates = 0;
+ 
   } else {
-    url =  (String)urlGet;
+    url =  (String)"/readLocalData";
   }
   
   int attempts = 0;
-  while(!clientGet.connect(hostGet, httpGetPort) && attempts < connectionRetryNumber) {
+  while(!clientGet.connect(controlIpAddress, httpGetPort) && attempts < connectionRetryNumber) {
     attempts++;
     delay(200);
   }
+  
   Serial.println();
   if (attempts >= connectionRetryNumber) {
     Serial.print("Connection failed");
@@ -119,7 +251,7 @@ void getJson() {
      Serial.println(url);
      clientGet.println("GET " + url + " HTTP/1.1");
      clientGet.print("Host: ");
-     clientGet.println(hostGet);
+     clientGet.println(controlIpAddress);
      clientGet.println("User-Agent: ESP8266/1.0");
      clientGet.println("Accept-Encoding: identity");
      clientGet.println("Connection: close\r\n\r\n");
@@ -127,11 +259,11 @@ void getJson() {
      while (clientGet.available() == 0) {
        if (millis() - timeoutP > 10000) {
 
-        if(clientGet.connect(hostGet, httpGetPort)){
+        if(clientGet.connect(controlIpAddress, httpGetPort)){
          //timeOffset = timeOffset + timeSkewAmount; //in case two probes are stepping on each other, make this one skew a 20 seconds from where it tried to upload data
          clientGet.println("GET / HTTP/1.1");
          clientGet.print("Host: ");
-         clientGet.println(hostGet);
+         clientGet.println(controlIpAddress);
          clientGet.println("User-Agent: ESP8266/1.0");
          clientGet.println("Accept-Encoding: identity");
          clientGet.println("Connection: close\r\n\r\n");
@@ -161,8 +293,8 @@ void getJson() {
  
    
   } //if (attempts >= connectionRetryNumber)....else....    
-  Serial.println("\r>>> Closing host: ");
-  Serial.println(hostGet);
+  Serial.println("\r>>> Closing host for json: ");
+  Serial.println(controlIpAddress);
   clientGet.stop();
 }
 
@@ -284,14 +416,14 @@ void toggleDevice(){
 }
  
 void buttonPushed() {
-  for(char i=0; i<pinNumber; i++) {
+  for(char i=0; i<buttonNumber; i++) {
     detachInterrupt(digitalPinToInterrupt(buttonPins[i]));
   }
   timeOutForServerDataUpdates = millis();
   
   volatile int val;
   volatile int hardwarePinNumber;
-  for(volatile char i=0; i<pinNumber; i++) {
+  for(volatile char i=0; i<buttonNumber; i++) {
     hardwarePinNumber = buttonPins[i];
     val = digitalRead(hardwarePinNumber);
     if(val == 1) {
@@ -306,7 +438,7 @@ void buttonPushed() {
       }
     }
   }
-  for(char i=0; i<pinNumber; i++) {
+  for(char i=0; i<buttonNumber; i++) {
     attachInterrupt(digitalPinToInterrupt(buttonPins[i]), buttonPushed, CHANGE);
   }
  
