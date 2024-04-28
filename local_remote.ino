@@ -39,11 +39,22 @@ String localCopyOfJson;
 long connectionFailureTime = 0;
 bool connectionFailureMode = false;
 long timeOutForServerDataUpdates;
-char menuCursor = 0;
-char menuBegin = 0;
+byte menuCursor = 0;
+byte menuBegin = 0;
+byte currentMode = 0;
+byte modeCursor = 0;
+const byte modeCount = 2;
+byte modeDeviceSwitcher = 0;
+byte modeWeather = 1;
+byte modes[modeCount] = {modeDeviceSwitcher, modeWeather};
 signed char totalMenuItems = 1;
 char totalScreenLines = 4;
 String deviceJson = "";
+
+double temperatureValue = -100;
+double humidityValue;
+double pressureValue;
+
 
 LiquidCrystal_I2C lcd(0x27,20,totalScreenLines); 
 
@@ -63,8 +74,8 @@ void setup(){
     Serial.println("EEPROM has data from a previous run.");
     Serial.print(EEPROM.percentUsed());
     Serial.println("% of ESP flash space currently used");
-    controlIpAddress = (String) eepromData.controlIpAddress;
-    weatherIpAddress = (String) eepromData.weatherIpAddress;
+    controlIpAddress = (String)eepromData.controlIpAddress;
+    weatherIpAddress = (String)eepromData.weatherIpAddress;
   } else {
     Serial.println("EEPROM size changed - EEPROM data zeroed - commit() to make permanent");    
   }
@@ -87,7 +98,11 @@ void loop(){
     if(deviceJson == "") {
       getDeviceInfo();
     } else {
-      getJson();
+      if(temperatureValue == -100 || millis() % 35000 == 0) { //get temperatures every 35 seconds
+        getWeatherData();
+      } else {
+        getJson();
+      }
     }
   }
   
@@ -119,6 +134,99 @@ void WiFiConnect() {
   Serial.println(WiFi.localIP());  //IP address assigned to your ESP
 }
 
+void getWeatherData() {
+  WiFiClient clientGet;
+  const int httpGetPort = 80;
+  String url;
+  url = "/weatherdata";
+   Serial.println("BEFORE STRING MADNESS");
+    
+  const char* dataSourceHost = weatherIpAddress.c_str();
+  Serial.println("SHOULD BE IN WEATHER HERE");
+  Serial.println(dataSourceHost);
+  int attempts = 0;
+  while(!clientGet.connect(dataSourceHost, httpGetPort) && attempts < connectionRetryNumber) {
+    attempts++;
+    delay(200);
+  }
+  Serial.println();
+  if (attempts >= connectionRetryNumber) {
+    Serial.print("Weather info connection failed");
+    clientGet.stop();
+    return;
+  } else {
+ 
+     Serial.println(url);
+     clientGet.println("GET " + url + " HTTP/1.1");
+     clientGet.print("Host: ");
+     clientGet.println(dataSourceHost);
+     clientGet.println("User-Agent: ESP8266/1.0");
+     clientGet.println("Accept-Encoding: identity");
+     clientGet.println("Connection: close\r\n\r\n");
+     unsigned long timeoutP = millis();
+     while (clientGet.available() == 0) {
+       if (millis() - timeoutP > 10000) {
+
+        if(clientGet.connect(dataSourceHost, httpGetPort)){
+         //timeOffset = timeOffset + timeSkewAmount; //in case two probes are stepping on each other, make this one skew a 20 seconds from where it tried to upload data
+         clientGet.println("GET / HTTP/1.1");
+         clientGet.print("Host: ");
+         clientGet.println(dataSourceHost);
+         clientGet.println("User-Agent: ESP8266/1.0");
+         clientGet.println("Accept-Encoding: identity");
+         clientGet.println("Connection: close\r\n\r\n");
+        }//if (clientGet.connect(
+        //clientGet.stop();
+        return;
+       } //if( millis() -  
+     }
+    delay(2); //see if this improved data reception. OMG IT TOTALLY WORKED!!!
+ 
+    while(clientGet.available()){
+      String retLine = clientGet.readStringUntil('\r');//when i was reading string until '\n' i didn't get any JSON most of the time!
+      retLine.trim();
+      if(retLine.indexOf('*') >0 && retLine.indexOf('|') >0) {
+        String lineArray[1];
+        String dataArray[3];
+        splitString(retLine, '|', lineArray, 1);
+        String firstLine = lineArray[0];
+        splitString(firstLine, '*', dataArray, 3);
+        Serial.println(firstLine);
+        temperatureValue = dataArray[0].toDouble();
+        pressureValue = dataArray[1].toDouble();
+        humidityValue = dataArray[2].toDouble();
+      } else {
+        Serial.print("weather non-data line returned: ");
+        Serial.println(retLine);
+      }
+    }
+  }  
+  clientGet.stop();
+
+}
+
+
+void splitString(const String& input, char delimiter, String* outputArray, int arraySize) {
+  int lastIndex = 0;
+  int count = 0;
+  // Loop through the input string
+  for (int i = 0; i < input.length(); i++) {
+    // Check if the current character is the delimiter
+    if (input.charAt(i) == delimiter) {
+      // Extract the substring between the last index and the current index
+      outputArray[count++] = input.substring(lastIndex, i);
+      lastIndex = i + 1;
+
+      // Break out of the loop if we've reached the end of the output array
+      if (count >= arraySize) {
+        break;
+      }
+    }
+  }
+
+  // Extract the last substring after the last delimiter
+  outputArray[count++] = input.substring(lastIndex);
+}
 
 void getDeviceInfo() { //goes on the internet to get the latest ip addresses of the various things to connect to. otherwise get them from like EEPROM
   WiFiClient clientGet;
@@ -282,7 +390,7 @@ void getJson() {
       if(retLine.charAt(0) == '{') {
         Serial.println(retLine);
         localCopyOfJson = (String)retLine.c_str();
-        updateScreen(localCopyOfJson, 0, false);
+        updateScreen(localCopyOfJson, 0, false); 
         receivedDataJson = true;
         break; 
       } else {
@@ -301,50 +409,70 @@ void getJson() {
 
 void updateScreen(String json, char startLine, bool withInit) {
   lcd.clear();
-  if(specialUrl != "") {
-    return;
-  }
-  if(withInit == true) {
-    menuBegin = 0;
-    menuCursor = 0;
-  }
-  if(startLine == 0){
-    menuBegin = 0;
-  }
-  lcd.backlight();
-  int value = -1;
-  int serverSaved = 0;
-  String friendlyPinName = "";
-  String id = "";
-  if(json != "") {
-    DeserializationError error = deserializeJson(jsonBuffer, json);
-  }
-  if(jsonBuffer["device"]) { //deviceName is a global
-    deviceName = (String)jsonBuffer["device"];
-  }
-  char * nodeName="pins";
-  if(jsonBuffer[nodeName]) {
-    char totalShown = 0;
-    totalMenuItems = jsonBuffer[nodeName].size();
-    for(int i=0; i<jsonBuffer[nodeName].size(); i++) {
-      if(i >= startLine && totalShown < totalScreenLines) {
-        lcd.setCursor(0, i - startLine);
-        friendlyPinName = (String)jsonBuffer[nodeName][i]["name"];
-        Serial.println(friendlyPinName);
-        value = (int)jsonBuffer[nodeName][i]["value"];
-        id = (String)jsonBuffer[nodeName][i]["id"];
-        if(value == 1) {
-          lcd.print(" *" + friendlyPinName.substring(0, 18));
-        } else {
-          lcd.print("  " + friendlyPinName.substring(0, 18));
-        }
-        totalShown++; 
-      }
+  if(currentMode == modeWeather) {
+    
+    lcd.setCursor(0, 0);
+    lcd.print("Current Weather");
+    lcd.setCursor(0, 1);
+    lcd.print(temperatureValue * 1.8 +32);
+    lcd.setCursor(13, 1);
+    lcd.print("deg F");
+    lcd.setCursor(0, 2);
+    lcd.print(pressureValue);
+    lcd.setCursor(13, 2);
+    lcd.print("mm Hg");
+    lcd.setCursor(0, 3);
+    lcd.print(humidityValue);
+    lcd.setCursor(13, 3);
+    lcd.print("% rel");
+  } else {
+ 
+   
+    if(specialUrl != "") {
+      return;
     }
-     
+    if(withInit == true) {
+      menuBegin = 0;
+      menuCursor = 0;
+    }
+    if(startLine == 0){
+      menuBegin = 0;
+    }
+    lcd.backlight();
+    int value = -1;
+    int serverSaved = 0;
+    String friendlyPinName = "";
+    String id = "";
+    if(json != "") {
+      DeserializationError error = deserializeJson(jsonBuffer, json);
+    }
+    if(jsonBuffer["device"]) { //deviceName is a global
+      deviceName = (String)jsonBuffer["device"];
+    }
+    char * nodeName="pins";
+    if(jsonBuffer[nodeName]) {
+      char totalShown = 0;
+      totalMenuItems = jsonBuffer[nodeName].size();
+      for(int i=0; i<jsonBuffer[nodeName].size(); i++) {
+        if(i >= startLine && totalShown < totalScreenLines) {
+          lcd.setCursor(0, i - startLine);
+          friendlyPinName = (String)jsonBuffer[nodeName][i]["name"];
+          Serial.println(friendlyPinName);
+          value = (int)jsonBuffer[nodeName][i]["value"];
+          id = (String)jsonBuffer[nodeName][i]["id"];
+          if(value == 1) {
+            lcd.print(" *" + friendlyPinName.substring(0, 18));
+          } else {
+            lcd.print("  " + friendlyPinName.substring(0, 18));
+          }
+          totalShown++; 
+        }
+      }
+       
+    }
+    Serial.print("total menu items:");
+    Serial.println((int)totalMenuItems);
   }
-  Serial.print("total menu items:");
-  Serial.println((int)totalMenuItems);
 }
 
 
@@ -414,6 +542,18 @@ void toggleDevice(){
   }
   Serial.println((int)menuCursor);
 }
+
+void advanceMode() {
+  modeCursor++;
+  if(modeCursor >= modeCount) {
+    modeCursor = 0;
+  }
+  currentMode = modes[modeCursor];
+  Serial.print("current mode: ");
+  Serial.println(currentMode);
+  updateScreen("", menuBegin, false);
+  
+}
  
 void buttonPushed() {
   for(char i=0; i<buttonNumber; i++) {
@@ -435,6 +575,9 @@ void buttonPushed() {
       }
       if(hardwarePinNumber == buttonChange) {
         toggleDevice();
+      }
+      if(hardwarePinNumber == buttonMode) {
+        advanceMode();
       }
     }
   }
