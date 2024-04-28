@@ -334,9 +334,9 @@ void updateScreen(String json, char startLine, bool withInit) {
         value = (int)jsonBuffer[nodeName][i]["value"];
         id = (String)jsonBuffer[nodeName][i]["id"];
         if(value == 1) {
-          lcd.print(" *" + friendlyPinName);
+          lcd.print(" *" + friendlyPinName.substring(0, 18));
         } else {
-          lcd.print("  " + friendlyPinName);
+          lcd.print("  " + friendlyPinName.substring(0, 18));
         }
         totalShown++; 
       }
@@ -457,6 +457,7 @@ char getPinValue(char ordinal) {
     }
      
   }
+  return 0;
 }
 
 
