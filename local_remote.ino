@@ -477,6 +477,9 @@ void updateScreen(String json, char startLine, bool withInit) {
 
 
 void moveCursorUp(){
+  if(currentMode == modeWeather) {
+    return;
+  }
   Serial.print("up: ");
   Serial.print((int)menuCursor);
   Serial.println(" * " );
@@ -503,6 +506,9 @@ void moveCursorUp(){
   Serial.println((int)menuCursor);
 }
 void moveCursorDown(){
+  if(currentMode == modeWeather) {
+    return;
+  }
   Serial.println("down: ");
   Serial.print((int)menuCursor);
   lcd.setCursor(0, menuCursor);
@@ -528,6 +534,9 @@ void moveCursorDown(){
 }
 
 void toggleDevice(){
+  if(currentMode == modeWeather) {
+    return;
+  }
   Serial.println("toggle");
   Serial.println((int)menuCursor);
   lcd.setCursor(0, menuCursor);
