@@ -22,6 +22,7 @@ struct nonVolatileStruct {
 void ICACHE_RAM_ATTR buttonPushed();
 StaticJsonDocument<1000> jsonBuffer;
 StaticJsonDocument<2000> deviceJsonBuffer;  //this has to be big for some reason
+StaticJsonDocument<1000> energyJsonBuffer;
 String deviceName = "Your Device";
 String specialUrl = "";
 String ourIpAddress;
@@ -43,10 +44,11 @@ byte menuCursor = 0;
 byte menuBegin = 0;
 byte currentMode = 0;
 byte modeCursor = 0;
-const byte modeCount = 2;
+const byte modeCount = 3;
 byte modeDeviceSwitcher = 0;
 byte modeWeather = 1;
-byte modes[modeCount] = {modeDeviceSwitcher, modeWeather};
+byte modePower = 2;
+byte modes[modeCount] = {modeDeviceSwitcher, modeWeather, modePower};
 signed char totalMenuItems = 1;
 char totalScreenLines = 4;
 String deviceJson = "";
@@ -54,6 +56,11 @@ String deviceJson = "";
 double temperatureValue = -100;
 double humidityValue;
 double pressureValue;
+
+double pvPower;
+double batPower;
+int batPercent = -1000;
+double loadPower;
 
 
 LiquidCrystal_I2C lcd(0x27,20,totalScreenLines); 
@@ -100,6 +107,8 @@ void loop(){
     } else {
       if(temperatureValue == -100 || millis() % 35000 == 0) { //get temperatures every 35 seconds
         getWeatherData();
+      } else if (batPercent == -1000 || millis() % 69000 == 0) { //get temperatures every 69 seconds, alright!
+        getEnergyInfo();
       } else {
         getJson();
       }
@@ -202,30 +211,6 @@ void getWeatherData() {
     }
   }  
   clientGet.stop();
-
-}
-
-
-void splitString(const String& input, char delimiter, String* outputArray, int arraySize) {
-  int lastIndex = 0;
-  int count = 0;
-  // Loop through the input string
-  for (int i = 0; i < input.length(); i++) {
-    // Check if the current character is the delimiter
-    if (input.charAt(i) == delimiter) {
-      // Extract the substring between the last index and the current index
-      outputArray[count++] = input.substring(lastIndex, i);
-      lastIndex = i + 1;
-
-      // Break out of the loop if we've reached the end of the output array
-      if (count >= arraySize) {
-        break;
-      }
-    }
-  }
-
-  // Extract the last substring after the last delimiter
-  outputArray[count++] = input.substring(lastIndex);
 }
 
 void getDeviceInfo() { //goes on the internet to get the latest ip addresses of the various things to connect to. otherwise get them from like EEPROM
@@ -328,6 +313,75 @@ void getDeviceInfo() { //goes on the internet to get the latest ip addresses of 
   clientGet.stop();
 }
 
+
+void getEnergyInfo() { //goes on the internet to get the latest solar energy data for display
+  WiFiClient clientGet;
+  const int httpGetPort = 80;
+  String url;
+  url = "/weather/data.php?storagePassword=" + (String)storagePassword + "&mode=getEnergyInfo";
+
+  char * dataSourceHost = "randomsprocket.com";
+  int attempts = 0;
+  while(!clientGet.connect(dataSourceHost, httpGetPort) && attempts < connectionRetryNumber) {
+    attempts++;
+    delay(200);
+  }
+  Serial.println();
+  if (attempts >= connectionRetryNumber) {
+    Serial.print("Solar info connection failed");
+    clientGet.stop();
+    return;
+  } else {
+ 
+     Serial.println(url);
+     clientGet.println("GET " + url + " HTTP/1.1");
+     clientGet.print("Host: ");
+     clientGet.println(dataSourceHost);
+     clientGet.println("User-Agent: ESP8266/1.0");
+     clientGet.println("Accept-Encoding: identity");
+     clientGet.println("Connection: close\r\n\r\n");
+     unsigned long timeoutP = millis();
+     while (clientGet.available() == 0) {
+       if (millis() - timeoutP > 10000) {
+
+        if(clientGet.connect(dataSourceHost, httpGetPort)){
+         //timeOffset = timeOffset + timeSkewAmount; //in case two probes are stepping on each other, make this one skew a 20 seconds from where it tried to upload data
+         clientGet.println("GET / HTTP/1.1");
+         clientGet.print("Host: ");
+         clientGet.println(dataSourceHost);
+         clientGet.println("User-Agent: ESP8266/1.0");
+         clientGet.println("Accept-Encoding: identity");
+         clientGet.println("Connection: close\r\n\r\n");
+        }//if (clientGet.connect(
+        //clientGet.stop();
+        return;
+       } //if( millis() -  
+     }
+    delay(2); //see if this improved data reception. OMG IT TOTALLY WORKED!!!
+ 
+    while(clientGet.available()){
+      String retLine = clientGet.readStringUntil('\r');//when i was reading string until '\n' i didn't get any JSON most of the time!
+      retLine.trim();
+      if(retLine.charAt(0) == '{') {
+        Serial.println(retLine);
+        String energyJson = (String)retLine.c_str();
+        DeserializationError error = deserializeJson(energyJsonBuffer, energyJson);
+        pvPower = (double)energyJsonBuffer["energy_info"]["pv_power"];
+        batPower = (double)energyJsonBuffer["energy_info"]["bat_power"];
+        batPercent = (int)energyJsonBuffer["energy_info"]["bat_percent"];
+        loadPower = (double)energyJsonBuffer["energy_info"]["load_power"];
+      } else {
+        Serial.print("power non-JSON line returned: ");
+        Serial.println(retLine);
+      }
+    }
+  }  
+  clientGet.stop();
+}
+
+
+
+
 void getJson() {
   Serial.print("control ip address:");
   Serial.println(controlIpAddress);
@@ -406,6 +460,22 @@ void getJson() {
   clientGet.stop();
 }
 
+void splitString(const String& input, char delimiter, String* outputArray, int arraySize) {
+  int lastIndex = 0;
+  int count = 0;
+  for (int i = 0; i < input.length(); i++) {
+    if (input.charAt(i) == delimiter) {
+      // Extract the substring between the last index and the current index
+      outputArray[count++] = input.substring(lastIndex, i);
+      lastIndex = i + 1;
+      if (count >= arraySize) {
+        break;
+      }
+    }
+  }
+  // Extract the last substring after the last delimiter
+  outputArray[count++] = input.substring(lastIndex);
+}
 
 void updateScreen(String json, char startLine, bool withInit) {
   lcd.clear();
@@ -425,6 +495,34 @@ void updateScreen(String json, char startLine, bool withInit) {
     lcd.print(humidityValue);
     lcd.setCursor(13, 3);
     lcd.print("% rel");
+  } else if(currentMode == modePower) {
+    
+    lcd.setCursor(0, 0);
+    lcd.print("Solar: ");
+    lcd.setCursor(8, 0);
+    lcd.print(pvPower);
+    lcd.setCursor(19, 0);
+    lcd.print("w");
+    lcd.setCursor(0, 1);
+    lcd.print("Load: ");
+    lcd.setCursor(8, 1);
+    lcd.print(loadPower);
+    lcd.setCursor(19, 1);
+    lcd.print("w");
+    
+    lcd.setCursor(0, 2);
+    lcd.print("Bat: ");
+    lcd.setCursor(8, 2);
+    lcd.print(batPower);
+    lcd.setCursor(19, 2);
+    lcd.print("w");
+    lcd.setCursor(0, 3);
+    lcd.print("Bat: ");
+    lcd.setCursor(8, 3);
+    lcd.print(batPercent);
+    lcd.setCursor(19, 3);
+    lcd.print("%");
+
   } else {
  
    
