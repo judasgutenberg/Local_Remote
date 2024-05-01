@@ -40,6 +40,7 @@ String localCopyOfJson;
 long connectionFailureTime = 0;
 bool connectionFailureMode = false;
 long timeOutForServerDataUpdates;
+long lastTimeButtonPushed = 0;
 byte menuCursor = 0;
 byte menuBegin = 0;
 byte currentMode = 0;
@@ -152,7 +153,7 @@ void getWeatherData() {
   int attempts = 0;
   while(!clientGet.connect(dataSourceHost, httpGetPort) && attempts < connectionRetryNumber) {
     attempts++;
-    delay(200);
+    delay(100);
   }
   Serial.println();
   if (attempts >= connectionRetryNumber) {
@@ -219,7 +220,7 @@ void getDeviceInfo() { //goes on the internet to get the latest ip addresses of 
   int attempts = 0;
   while(!clientGet.connect(dataSourceHost, httpGetPort) && attempts < connectionRetryNumber) {
     attempts++;
-    delay(200);
+    delay(100);
   }
   Serial.println();
   if (attempts >= connectionRetryNumber) {
@@ -253,7 +254,6 @@ void getDeviceInfo() { //goes on the internet to get the latest ip addresses of 
        } //if( millis() -  
      }
     delay(2); //see if this improved data reception. OMG IT TOTALLY WORKED!!!
- 
     while(clientGet.available()){
       String retLine = clientGet.readStringUntil('\r');//when i was reading string until '\n' i didn't get any JSON most of the time!
       retLine.trim();
@@ -265,7 +265,6 @@ void getDeviceInfo() { //goes on the internet to get the latest ip addresses of 
         int deviceId;
         Serial.println((int)deviceJsonBuffer["devices"].size());
         bool eepromUpdateNeeded = false;
-        
         for(int i=0; i<deviceJsonBuffer["devices"].size(); i++) {
             ipAddress = (String)deviceJsonBuffer["devices"][i]["ip_address"];
             deviceId = (int)deviceJsonBuffer["devices"][i]["device_id"];
@@ -288,9 +287,7 @@ void getDeviceInfo() { //goes on the internet to get the latest ip addresses of 
                 eepromData.controlIpAddress[sizeof(eepromData.controlIpAddress) - 1] = '\0';
                 eepromUpdateNeeded = true;
               }
-
             }
-          
         }
         if(eepromUpdateNeeded) {
           EEPROM.put(0, eepromData);
@@ -309,7 +306,6 @@ void getDeviceInfo() { //goes on the internet to get the latest ip addresses of 
   clientGet.stop();
 }
 
-
 void getEnergyInfo() { //goes on the internet to get the latest solar energy data for display
   WiFiClient clientGet;
   const int httpGetPort = 80;
@@ -320,7 +316,7 @@ void getEnergyInfo() { //goes on the internet to get the latest solar energy dat
   int attempts = 0;
   while(!clientGet.connect(dataSourceHost, httpGetPort) && attempts < connectionRetryNumber) {
     attempts++;
-    delay(200);
+    delay(100);
   }
   Serial.println();
   if (attempts >= connectionRetryNumber) {
@@ -328,7 +324,6 @@ void getEnergyInfo() { //goes on the internet to get the latest solar energy dat
     clientGet.stop();
     return;
   } else {
- 
      Serial.println(url);
      clientGet.println("GET " + url + " HTTP/1.1");
      clientGet.print("Host: ");
@@ -339,7 +334,6 @@ void getEnergyInfo() { //goes on the internet to get the latest solar energy dat
      unsigned long timeoutP = millis();
      while (clientGet.available() == 0) {
        if (millis() - timeoutP > 10000) {
-
         if(clientGet.connect(dataSourceHost, httpGetPort)){
          //timeOffset = timeOffset + timeSkewAmount; //in case two probes are stepping on each other, make this one skew a 20 seconds from where it tried to upload data
          clientGet.println("GET / HTTP/1.1");
@@ -354,7 +348,6 @@ void getEnergyInfo() { //goes on the internet to get the latest solar energy dat
        } //if( millis() -  
      }
     delay(2); //see if this improved data reception. OMG IT TOTALLY WORKED!!!
- 
     while(clientGet.available()){
       String retLine = clientGet.readStringUntil('\r');//when i was reading string until '\n' i didn't get any JSON most of the time!
       retLine.trim();
@@ -375,9 +368,6 @@ void getEnergyInfo() { //goes on the internet to get the latest solar energy dat
   clientGet.stop();
 }
 
-
-
-
 void getJson() {
   Serial.print("control ip address:");
   Serial.println(controlIpAddress);
@@ -387,17 +377,14 @@ void getJson() {
   if(specialUrl != "") {
     url =  (String)specialUrl;
     specialUrl = "";
- 
   } else {
     url =  (String)"/readLocalData";
   }
-  
   int attempts = 0;
   while(!clientGet.connect(controlIpAddress, httpGetPort) && attempts < connectionRetryNumber) {
     attempts++;
-    delay(200);
+    delay(100);
   }
-  
   Serial.println();
   if (attempts >= connectionRetryNumber) {
     Serial.print("Connection failed");
@@ -416,7 +403,6 @@ void getJson() {
      unsigned long timeoutP = millis();
      while (clientGet.available() == 0) {
        if (millis() - timeoutP > 10000) {
-
         if(clientGet.connect(controlIpAddress, httpGetPort)){
          //timeOffset = timeOffset + timeSkewAmount; //in case two probes are stepping on each other, make this one skew a 20 seconds from where it tried to upload data
          clientGet.println("GET / HTTP/1.1");
@@ -448,8 +434,6 @@ void getJson() {
         Serial.println(retLine);
       }
     }
- 
-   
   } //if (attempts >= connectionRetryNumber)....else....    
   Serial.println("\r>>> Closing host for json: ");
   Serial.println(controlIpAddress);
@@ -473,7 +457,7 @@ void splitString(const String& input, char delimiter, String* outputArray, int a
   outputArray[count++] = input.substring(lastIndex);
 }
 
-void updateScreen(String json, char startLine, bool withInit) {
+void updateScreen(String json, char startLine, bool withInit) { //handles the display of everything
   lcd.clear();
   char buffer[12];
   if(currentMode == modeWeather) {
@@ -529,10 +513,7 @@ void updateScreen(String json, char startLine, bool withInit) {
     lcd.print(buffer);
     lcd.setCursor(19, 3);
     lcd.print("w");
-
   } else {
- 
-   
     if(specialUrl != "") {
       return;
     }
@@ -573,13 +554,11 @@ void updateScreen(String json, char startLine, bool withInit) {
           totalShown++; 
         }
       }
-       
     }
     Serial.print("total menu items:");
     Serial.println((int)totalMenuItems);
   }
 }
-
 
 void moveCursorUp(){
   if(currentMode == modeWeather) {
@@ -590,7 +569,6 @@ void moveCursorUp(){
   Serial.println(" * " );
   lcd.setCursor(0, menuCursor);
   lcd.print(" ");
- 
   if(menuBegin > 0) {
     //scroll screen up:
     menuBegin--;
@@ -619,7 +597,6 @@ void moveCursorDown(){
   lcd.setCursor(0, menuCursor);
   lcd.print(" ");
   menuCursor++;
-
   if(menuCursor > totalMenuItems-1) {
     menuCursor = totalMenuItems-1;
   }
@@ -633,7 +610,6 @@ void moveCursorDown(){
   } else {
     lcd.setCursor(0, menuCursor);
   }
-  
   lcd.print(">");
   Serial.println((int)menuCursor);
 }
@@ -644,8 +620,6 @@ void toggleDevice(){
   }
   Serial.println("toggle");
   Serial.println((int)menuCursor);
-  lcd.setCursor(0, menuCursor);
- 
   lcd.setCursor(0, menuCursor);
   if(getPinValue(menuCursor) == 0) {
     lcd.print(">*");
@@ -666,15 +640,19 @@ void advanceMode() {
   Serial.print("current mode: ");
   Serial.println(currentMode);
   updateScreen("", menuBegin, false);
-  
 }
  
 void buttonPushed() {
+  if(lastTimeButtonPushed == 0 || millis() - lastTimeButtonPushed > 80) { //80 millisecond debounce
+    lastTimeButtonPushed = millis();
+  } else {
+    //too soon, so debounce!
+    return;
+  }
   for(char i=0; i<buttonNumber; i++) {
     detachInterrupt(digitalPinToInterrupt(buttonPins[i]));
   }
   timeOutForServerDataUpdates = millis();
-  
   volatile int val;
   volatile int hardwarePinNumber;
   for(volatile char i=0; i<buttonNumber; i++) {
@@ -698,7 +676,6 @@ void buttonPushed() {
   for(char i=0; i<buttonNumber; i++) {
     attachInterrupt(digitalPinToInterrupt(buttonPins[i]), buttonPushed, CHANGE);
   }
- 
 }
 
 char getPinValue(char ordinal) {
@@ -712,11 +689,9 @@ char getPinValue(char ordinal) {
         return value;
       }
     }
-     
   }
   return 0;
 }
-
 
 void sendDataToController(char ordinal, char value) {
   char * nodeName="pins";
@@ -725,11 +700,9 @@ void sendDataToController(char ordinal, char value) {
     for(int i=0; i<jsonBuffer[nodeName].size(); i++) {
       id = (String)jsonBuffer[nodeName][i]["id"];
       if((int)ordinal == i) {
+        //we just snag one of the updates and use it to send data to the remote controller
         specialUrl =  (String)"/writeLocalData?id=" + id + "&on=" + (int)value;
       }
     }
-     
   }
-
-  
 }
