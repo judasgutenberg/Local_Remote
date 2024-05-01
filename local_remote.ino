@@ -477,18 +477,22 @@ void updateScreen(String json, char startLine, bool withInit) {
   lcd.clear();
   char buffer[12];
   if(currentMode == modeWeather) {
+    char format[] = "%6.2f";
     lcd.setCursor(0, 0);
     lcd.print("Current Weather");
     lcd.setCursor(0, 1);
-    lcd.print(temperatureValue * 1.8 +32);
+    sprintf(buffer, format, temperatureValue * 1.8 +32);
+    lcd.print(buffer);
     lcd.setCursor(13, 1);
     lcd.print("deg F");
     lcd.setCursor(0, 2);
-    lcd.print(pressureValue);
+    sprintf(buffer, format, pressureValue);
+    lcd.print(buffer);
     lcd.setCursor(13, 2);
     lcd.print("mm Hg");
     lcd.setCursor(0, 3);
-    lcd.print(humidityValue);
+    sprintf(buffer, format, humidityValue);
+    lcd.print(buffer);
     lcd.setCursor(13, 3);
     lcd.print("% rel");
   } else if(currentMode == modePower) {
@@ -496,31 +500,36 @@ void updateScreen(String json, char startLine, bool withInit) {
     lcd.setCursor(0, 0);
     lcd.print("Solar: ");
     sprintf(buffer, format, pvPower);
-    lcd.setCursor(10, 0);
+    lcd.setCursor(12, 0);
     lcd.print(buffer);
     lcd.setCursor(19, 0);
     lcd.print("w");
     lcd.setCursor(0, 1);
     lcd.print("Load: ");
-    lcd.setCursor(10, 1);
+    lcd.setCursor(12, 1);
     sprintf(buffer, format, loadPower);
     lcd.print(buffer);
     lcd.setCursor(19, 1);
     lcd.print("w");
     lcd.setCursor(0, 2);
-    lcd.print("Bat: ");
-    lcd.setCursor(10, 2);
-    sprintf(buffer, format, batPower);
-    lcd.print(buffer);
-    lcd.setCursor(19, 2);
-    lcd.print("w");
-    lcd.setCursor(0, 3);
-    lcd.print("Bat: ");
-    lcd.setCursor(10, 3);
+    lcd.print("Battery: ");
+    lcd.setCursor(12, 2);
     sprintf(buffer, format, batPercent);
     lcd.print(buffer);
-    lcd.setCursor(19, 3);
+    lcd.setCursor(19, 2);
     lcd.print("%");
+    lcd.setCursor(0, 3);
+    if(batPower < 0) {
+      lcd.print("Charging: ");
+    } else {
+      lcd.print("Draining: "); 
+    }
+    lcd.setCursor(12, 3);
+    sprintf(buffer, format, abs(batPower));
+    lcd.print(buffer);
+    lcd.setCursor(19, 3);
+    lcd.print("w");
+
   } else {
  
    
