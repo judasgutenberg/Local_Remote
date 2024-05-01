@@ -57,10 +57,10 @@ double temperatureValue = -100;
 double humidityValue;
 double pressureValue;
 
-double pvPower;
-double batPower;
+int pvPower;
+int batPower;
 int batPercent = -1000;
-double loadPower;
+int loadPower;
 
 
 LiquidCrystal_I2C lcd(0x27,20,totalScreenLines); 
@@ -105,7 +105,7 @@ void loop(){
     if(deviceJson == "") {
       getDeviceInfo();
     } else {
-      if(temperatureValue == -100 || millis() % 35000 == 0) { //get temperatures every 35 seconds
+      if(temperatureValue == -100 || millis() % 95000 == 0) { //get temperatures every 95 seconds
         getWeatherData();
       } else if (batPercent == -1000 || millis() % 69000 == 0) { //get temperatures every 69 seconds, alright!
         getEnergyInfo();
@@ -148,11 +148,7 @@ void getWeatherData() {
   const int httpGetPort = 80;
   String url;
   url = "/weatherdata";
-   Serial.println("BEFORE STRING MADNESS");
-    
   const char* dataSourceHost = weatherIpAddress.c_str();
-  Serial.println("SHOULD BE IN WEATHER HERE");
-  Serial.println(dataSourceHost);
   int attempts = 0;
   while(!clientGet.connect(dataSourceHost, httpGetPort) && attempts < connectionRetryNumber) {
     attempts++;
@@ -366,10 +362,10 @@ void getEnergyInfo() { //goes on the internet to get the latest solar energy dat
         Serial.println(retLine);
         String energyJson = (String)retLine.c_str();
         DeserializationError error = deserializeJson(energyJsonBuffer, energyJson);
-        pvPower = (double)energyJsonBuffer["energy_info"]["pv_power"];
-        batPower = (double)energyJsonBuffer["energy_info"]["bat_power"];
+        pvPower = (int)energyJsonBuffer["energy_info"]["pv_power"];
+        batPower = (int)energyJsonBuffer["energy_info"]["bat_power"];
         batPercent = (int)energyJsonBuffer["energy_info"]["bat_percent"];
-        loadPower = (double)energyJsonBuffer["energy_info"]["load_power"];
+        loadPower = (int)energyJsonBuffer["energy_info"]["load_power"];
       } else {
         Serial.print("power non-JSON line returned: ");
         Serial.println(retLine);
@@ -479,8 +475,8 @@ void splitString(const String& input, char delimiter, String* outputArray, int a
 
 void updateScreen(String json, char startLine, bool withInit) {
   lcd.clear();
+  char buffer[12];
   if(currentMode == modeWeather) {
-    
     lcd.setCursor(0, 0);
     lcd.print("Current Weather");
     lcd.setCursor(0, 1);
@@ -496,33 +492,35 @@ void updateScreen(String json, char startLine, bool withInit) {
     lcd.setCursor(13, 3);
     lcd.print("% rel");
   } else if(currentMode == modePower) {
-    
+    char format[] = "%6d";
     lcd.setCursor(0, 0);
     lcd.print("Solar: ");
-    lcd.setCursor(8, 0);
-    lcd.print(pvPower);
+    sprintf(buffer, format, pvPower);
+    lcd.setCursor(10, 0);
+    lcd.print(buffer);
     lcd.setCursor(19, 0);
     lcd.print("w");
     lcd.setCursor(0, 1);
     lcd.print("Load: ");
-    lcd.setCursor(8, 1);
-    lcd.print(loadPower);
+    lcd.setCursor(10, 1);
+    sprintf(buffer, format, loadPower);
+    lcd.print(buffer);
     lcd.setCursor(19, 1);
     lcd.print("w");
-    
     lcd.setCursor(0, 2);
     lcd.print("Bat: ");
-    lcd.setCursor(8, 2);
-    lcd.print(batPower);
+    lcd.setCursor(10, 2);
+    sprintf(buffer, format, batPower);
+    lcd.print(buffer);
     lcd.setCursor(19, 2);
     lcd.print("w");
     lcd.setCursor(0, 3);
     lcd.print("Bat: ");
-    lcd.setCursor(8, 3);
-    lcd.print(batPercent);
+    lcd.setCursor(10, 3);
+    sprintf(buffer, format, batPercent);
+    lcd.print(buffer);
     lcd.setCursor(19, 3);
     lcd.print("%");
-
   } else {
  
    
