@@ -23,3 +23,5 @@ extern const int energyUpateInterval;
 extern const int temperatureDeltaForChange;
 extern const int pressureDeltaForChange;
 extern const int humidityDeltaForChange;
+
+extern const int backlightTimeout;
