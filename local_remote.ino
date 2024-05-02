@@ -41,6 +41,7 @@ long connectionFailureTime = 0;
 bool connectionFailureMode = false;
 long timeOutForServerDataUpdates;
 long lastTimeButtonPushed = 0;
+long oldWeatherRecordingTime = 0;
 byte menuCursor = 0;
 byte menuBegin = 0;
 byte currentMode = 0;
@@ -57,6 +58,10 @@ String deviceJson = "";
 double temperatureValue = -100;
 double humidityValue;
 double pressureValue;
+
+double oldTemperatureValue = -100;
+double oldHumidityValue;
+double oldPressureValue;
 
 int pvPower;
 int batPower;
@@ -106,9 +111,9 @@ void loop(){
     if(deviceJson == "") {
       getDeviceInfo();
     } else {
-      if(temperatureValue == -100 || millis() % 95000 == 0) { //get temperatures every 95 seconds
+      if(temperatureValue == -100 || millis() % (weatherUpdateInterval * 1000) == 0) { //get temperatures every 95 seconds
         getWeatherData();
-      } else if (batPercent == -1000 || millis() % 69000 == 0) { //get temperatures every 69 seconds, alright!
+      } else if (batPercent == -1000 || millis() % (energyUpateInterval * 1000) == 0) { //get temperatures every 69 seconds, alright!
         getEnergyInfo();
       } else {
         getJson();
@@ -198,6 +203,10 @@ void getWeatherData() {
         String firstLine = lineArray[0];
         splitString(firstLine, '*', dataArray, 3);
         Serial.println(firstLine);
+        
+        oldTemperatureValue = temperatureValue;
+        oldHumidityValue = humidityValue;
+        oldPressureValue = pressureValue;
         temperatureValue = dataArray[0].toDouble();
         pressureValue = dataArray[1].toDouble();
         humidityValue = dataArray[2].toDouble();
@@ -461,19 +470,53 @@ void updateScreen(String json, char startLine, bool withInit) { //handles the di
   lcd.clear();
   char buffer[12];
   if(currentMode == modeWeather) {
-    char format[] = "%6.2f";
+    char directionIndication = ' ';
+    char format[] = "%7.2f";
     lcd.setCursor(0, 0);
     lcd.print("Current Weather");
+    if (oldTemperatureValue == -100) { //this condition a proxy for there being no old weather data
+      directionIndication = ' ';
+    } else if(oldTemperatureValue > temperatureValue) {
+      directionIndication  = 'v';
+    } else if (oldTemperatureValue < temperatureValue) {
+      directionIndication  = '^';
+    } else {
+      directionIndication  = '=';
+    }
+    lcd.setCursor(9, 1);
+    lcd.print(directionIndication);
     lcd.setCursor(0, 1);
     sprintf(buffer, format, temperatureValue * 1.8 +32);
     lcd.print(buffer);
     lcd.setCursor(13, 1);
     lcd.print("deg F");
+    if (oldTemperatureValue == -100) { //this condition a proxy for there being no old weather data
+      directionIndication = ' ';
+    } else if(oldPressureValue > pressureValue) {
+      directionIndication  = 'v';
+    } else if (oldPressureValue < pressureValue) {
+      directionIndication  = '^';
+    } else {
+      directionIndication  = '=';
+    }
+    lcd.setCursor(9, 2);
+    lcd.print(directionIndication);  
     lcd.setCursor(0, 2);
     sprintf(buffer, format, pressureValue);
     lcd.print(buffer);
     lcd.setCursor(13, 2);
     lcd.print("mm Hg");
+    if (oldTemperatureValue == -100) { //this condition a proxy for there being no old weather data
+      directionIndication = ' ';
+    } else if(oldHumidityValue > humidityValue) {
+      directionIndication  = 'v';
+    } else if (oldHumidityValue < humidityValue) {
+      directionIndication  = '^';
+    } else {
+      directionIndication  = '=';
+    }
+    lcd.setCursor(9, 3);
+    lcd.print(directionIndication);
     lcd.setCursor(0, 3);
     sprintf(buffer, format, humidityValue);
     lcd.print(buffer);
@@ -589,7 +632,7 @@ void moveCursorUp(){
   Serial.println((int)menuCursor);
 }
 void moveCursorDown(){
-  if(currentMode == modeWeather) {
+  if(currentMode != modeDeviceSwitcher) {
     return;
   }
   Serial.println("down: ");
@@ -615,7 +658,7 @@ void moveCursorDown(){
 }
 
 void toggleDevice(){
-  if(currentMode == modeWeather) {
+  if(currentMode != modeDeviceSwitcher) {
     return;
   }
   Serial.println("toggle");
