@@ -476,14 +476,14 @@ void updateScreen(String json, char startLine, bool withInit) { //handles the di
     lcd.print("Current Weather");
     if (oldTemperatureValue == -100) { //this condition a proxy for there being no old weather data
       directionIndication = ' ';
-    } else if(oldTemperatureValue > temperatureValue) {
+    } else if(oldTemperatureValue-temperatureValue > temperatureDeltaForChange) {//we want a change in temperature to be at least as big as temperatureDeltaForChange to produce a change arrow
       directionIndication  = 'v';
-    } else if (oldTemperatureValue < temperatureValue) {
+    } else if (oldTemperatureValue-temperatureValue < -temperatureDeltaForChange) {
       directionIndication  = '^';
     } else {
       directionIndication  = '=';
     }
-    lcd.setCursor(9, 1);
+    lcd.setCursor(19, 1);
     lcd.print(directionIndication);
     lcd.setCursor(0, 1);
     sprintf(buffer, format, temperatureValue * 1.8 +32);
@@ -492,14 +492,14 @@ void updateScreen(String json, char startLine, bool withInit) { //handles the di
     lcd.print("deg F");
     if (oldTemperatureValue == -100) { //this condition a proxy for there being no old weather data
       directionIndication = ' ';
-    } else if(oldPressureValue > pressureValue) {
+    } else if(oldPressureValue - pressureValue > pressureDeltaForChange) {//we want a change in pressure to be at least as big as pressureDeltaForChange to produce a change arrow
       directionIndication  = 'v';
-    } else if (oldPressureValue < pressureValue) {
+    } else if (oldPressureValue - pressureValue < -pressureDeltaForChange) {
       directionIndication  = '^';
     } else {
       directionIndication  = '=';
     }
-    lcd.setCursor(9, 2);
+    lcd.setCursor(19, 2);
     lcd.print(directionIndication);  
     lcd.setCursor(0, 2);
     sprintf(buffer, format, pressureValue);
@@ -508,14 +508,14 @@ void updateScreen(String json, char startLine, bool withInit) { //handles the di
     lcd.print("mm Hg");
     if (oldTemperatureValue == -100) { //this condition a proxy for there being no old weather data
       directionIndication = ' ';
-    } else if(oldHumidityValue > humidityValue) {
+    } else if(oldHumidityValue - humidityValue > humidityDeltaForChange) { //we want a change in humidity to be at least as big as humidityDeltaForChange to produce a change arrow
       directionIndication  = 'v';
-    } else if (oldHumidityValue < humidityValue) {
+    } else if (oldHumidityValue - humidityValue < -humidityDeltaForChange) {
       directionIndication  = '^';
     } else {
       directionIndication  = '=';
     }
-    lcd.setCursor(9, 3);
+    lcd.setCursor(19, 3);
     lcd.print(directionIndication);
     lcd.setCursor(0, 3);
     sprintf(buffer, format, humidityValue);
