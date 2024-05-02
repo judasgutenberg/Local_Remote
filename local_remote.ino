@@ -76,6 +76,8 @@ void setup(){
   Serial.begin(115200);
   Serial.println("Starting up Local Remote");
   backlightOn();
+  lcd.setCursor(0,0);
+  lcd.print("Booting up...");
   WiFiConnect();
   for(char i=0; i<buttonNumber; i++) {
     pinMode(buttonPins[i], OUTPUT); //seems to work to make an unconnected INPUT default as low
@@ -111,10 +113,20 @@ void loop(){
     
     if(deviceJson == "") {
       getDeviceInfo();
+      lcd.setCursor(0,3);
+      lcd.print("Getting device data...");
     } else {
       if(temperatureValue == -100 || millis() % (weatherUpdateInterval * 1000) == 0) { //get temperatures every 95 seconds
+        if(temperatureValue == -100) {
+          lcd.setCursor(0,1);
+          lcd.print("Getting weather data...");
+        }
         getWeatherData();
       } else if (batPercent == -1000 || millis() % (energyUpateInterval * 1000) == 0) { //get temperatures every 69 seconds, alright!
+        if(batPercent == -1000) {
+          lcd.setCursor(0,2);
+          lcd.print("Getting energy data...");
+        }
         getEnergyInfo();
       } else {
         getJson();
@@ -147,7 +159,7 @@ void WiFiConnect() {
 }
 
 void backlightOn() {
-  lcd.backlight;
+  lcd.backlight();
   backlightOnTime = millis();
 }
 
