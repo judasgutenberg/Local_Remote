@@ -18,4 +18,11 @@ const int granularityWhenInConnectionFailureMode = 5; //40 was too little time f
 const int numberOfHotspotRebootsOverLimitedTimeframeBeforeEspReboot = 4; //reboots moxee four times in 340 seconds (number below) and then reboots itself
 const int hotspotLimitedTimeFrame = 340; //seconds
 const int hiatusLengthOfUiUpdatesAfterUserInteraction = 35;
+
+const int weatherRecordingInterval = 300;
+const int weatherUpdateInterval = 95;
+const int energyUpateInterval = 116;
+
+
+
  
