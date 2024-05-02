@@ -27,8 +27,8 @@ String deviceName = "Your Device";
 String specialUrl = "";
 String ourIpAddress;
 
-String controlIpAddress; //would like to store in EEPROM
-String weatherIpAddress; //would like to store in EEPROM
+String controlIpAddress; //stored in EEPROM
+String weatherIpAddress; //stored in EEPROM
  
 const byte buttonNumber = 4;
 byte buttonMode = 13;
