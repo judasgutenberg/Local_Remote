@@ -27,7 +27,8 @@ const int temperatureDeltaForChange = 1;
 const int pressureDeltaForChange = 1;
 const int humidityDeltaForChange = 1;
 
-
+const int backlightTimeout = 300; //how long the backlight stays lit after we start up or a button is pushed.  the backlight uses 100 times more power than the rest of the LCD module
+ 
 
 
  
