@@ -20,8 +20,8 @@ extern const int weatherRecordingInterval;
 extern const int weatherUpdateInterval;
 extern const int energyUpateInterval;
 
-extern const int temperatureDeltaForChange;
-extern const int pressureDeltaForChange;
-extern const int humidityDeltaForChange;
+extern double int temperatureDeltaForChange;
+extern double int pressureDeltaForChange;
+extern double int humidityDeltaForChange;
 
 extern const int backlightTimeout;
