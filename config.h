@@ -19,3 +19,7 @@ extern const  int hiatusLengthOfUiUpdatesAfterUserInteraction;
 extern const int weatherRecordingInterval;
 extern const int weatherUpdateInterval;
 extern const int energyUpateInterval;
+
+extern const int temperatureDeltaForChange;
+extern const int pressureDeltaForChange;
+extern const int humidityDeltaForChange;
