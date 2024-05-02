@@ -23,9 +23,9 @@ const int weatherRecordingInterval = 300;
 const int weatherUpdateInterval = 95;
 const int energyUpateInterval = 116;
 
-const int temperatureDeltaForChange = 3;
+const int temperatureDeltaForChange = 1;
 const int pressureDeltaForChange = 1;
-const int humidityDeltaForChange = 2;
+const int humidityDeltaForChange = 1;
 
 
 
