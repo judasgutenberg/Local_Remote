@@ -15,3 +15,7 @@ extern const int dataLoggingGranularity; //how often to store data in backend, 3
 extern const int connectionFailureRetrySeconds;
 extern const int connectionRetryNumber;
 extern const  int hiatusLengthOfUiUpdatesAfterUserInteraction;
+
+extern const int weatherRecordingInterval;
+extern const int weatherUpdateInterval;
+extern const int energyUpateInterval;
