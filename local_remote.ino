@@ -42,6 +42,7 @@ bool connectionFailureMode = false;
 long timeOutForServerDataUpdates;
 long lastTimeButtonPushed = 0;
 long oldWeatherRecordingTime = 0;
+long backlightOnTime = 0;
 byte menuCursor = 0;
 byte menuBegin = 0;
 byte currentMode = 0;
@@ -74,6 +75,7 @@ LiquidCrystal_I2C lcd(0x27,20,totalScreenLines);
 void setup(){
   Serial.begin(115200);
   Serial.println("Starting up Local Remote");
+  backlightOn();
   WiFiConnect();
   for(char i=0; i<buttonNumber; i++) {
     pinMode(buttonPins[i], OUTPUT); //seems to work to make an unconnected INPUT default as low
@@ -102,10 +104,9 @@ void setup(){
 }
   
 void loop(){
-  for(char i=0; i<buttonNumber; i++) {
-      //Serial.print(digitalRead(buttonPins[i]));
+  if(millis() - backlightOnTime > backlightTimeout * 1000) {
+    lcd.noBacklight(); //power down the backlight if no buttons have been pushed in awhile (configured as backlightTimeout in config.c)
   }
-  //Serial.println();
   if(totalMenuItems == 0 || specialUrl != "" || (millis() % 5000  == 0 && ( millis() - timeOutForServerDataUpdates > hiatusLengthOfUiUpdatesAfterUserInteraction * 1000 || timeOutForServerDataUpdates == 0))) {
     
     if(deviceJson == "") {
@@ -120,11 +121,7 @@ void loop(){
       }
     }
   }
-  
- 
- 
 }
-
 
 void WiFiConnect() {
   WiFi.begin(ssid, password);     //Connect to your WiFi router
@@ -147,6 +144,11 @@ void WiFiConnect() {
   Serial.print("IP address: ");
   ourIpAddress =  WiFi.localIP().toString();
   Serial.println(WiFi.localIP());  //IP address assigned to your ESP
+}
+
+void backlightOn() {
+  lcd.backlight;
+  backlightOnTime = millis();
 }
 
 void getWeatherData() {
@@ -567,7 +569,7 @@ void updateScreen(String json, char startLine, bool withInit) { //handles the di
     if(startLine == 0){
       menuBegin = 0;
     }
-    lcd.backlight();
+    
     int value = -1;
     int serverSaved = 0;
     String friendlyPinName = "";
@@ -702,6 +704,7 @@ void buttonPushed() {
     hardwarePinNumber = buttonPins[i];
     val = digitalRead(hardwarePinNumber);
     if(val == 1) {
+      backlightOn();
       if(hardwarePinNumber == buttonUp) {
         moveCursorUp();
       }
