@@ -97,13 +97,6 @@ void setup(){
   } else {
     Serial.println("EEPROM size changed - EEPROM data zeroed - commit() to make permanent");    
   }
-  
-  // set up the LCD's number of rows and columns:
-  
- 
-
-  // Print a message to the LCD.
- 
 }
   
 void loop(){
@@ -117,20 +110,20 @@ void loop(){
       lcd.setCursor(0,1);
       lcd.print("Getting device data");
     } else {
-      if(temperatureValue == -100 || millis() % (weatherUpdateInterval * 1000) == 0) { //get temperatures every 95 seconds
+      if(temperatureValue == -100 || millis() % (weatherUpdateInterval * 1000) == 0) { //get temperatures every weatherUpdateInterval seconds
         if(temperatureValue == -100) {
           lcd.setCursor(0,2);
           lcd.print("Getting weather data");
         }
         getWeatherData();
-      } else if (batPercent == -1000 || millis() % (energyUpateInterval * 1000) == 0) { //get temperatures every 69 seconds, alright!
+      } else if (batPercent == -1000 || millis() % (energyUpateInterval * 1000) == 0) { //get temperatures every energyUpateInterval (maybe 69) seconds, alright!
         if(batPercent == -1000) {
           lcd.setCursor(0,3);
           lcd.print("Getting energy data");
         }
         getEnergyInfo();
       } else {
-        getJson();
+        getControlFormData();
       }
     }
   }
@@ -392,7 +385,7 @@ void getEnergyInfo() { //goes on the internet to get the latest solar energy dat
   clientGet.stop();
 }
 
-void getJson() {
+void getControlFormData() {
   Serial.print("control ip address:");
   Serial.println(controlIpAddress);
   WiFiClient clientGet;
