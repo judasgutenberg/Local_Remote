@@ -113,21 +113,23 @@ void loop(){
       lcd.setCursor(0,1);
       lcd.print("Getting device data");
     } else {
-      if(temperatureValue == -100 || millis() % (weatherUpdateInterval * 1000) == 0) { //get temperatures every weatherUpdateInterval seconds
+      if(temperatureValue == -100 || millis() - updateTimes[1] > weatherUpdateInterval * 1000) { //get temperatures every weatherUpdateInterval seconds
         if(temperatureValue == -100) {
           lcd.setCursor(0,2);
           lcd.print("Getting weather data");
         }
         getWeatherData();
         updateTimes[1] = millis();
-      } else if (batPercent == -1000 || millis() % (energyUpateInterval * 1000) == 0) { //get values every energyUpateInterval (maybe 69) seconds, alright!
+      }
+      if (batPercent == -1000 || millis() - updateTimes[2] > energyUpateInterval * 1000) { //get values every energyUpateInterval (maybe 69) seconds, alright!
         if(batPercent == -1000) {
           lcd.setCursor(0,3);
           lcd.print("Getting energy data");
         }
         getEnergyInfo();
         updateTimes[2] = millis();
-      } else {
+      } 
+      if(updateTimes[0] == 0 || millis() - updateTimes[0] > pollingGranularity * 1000) {
         getControlFormData();
         updateTimes[0] = millis();
       }
