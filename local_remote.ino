@@ -1,3 +1,4 @@
+
 /* 
 Local Remote, Gus Mueller, April 22 2024
 Provides a local control-panel for the remote-control system here:
@@ -612,7 +613,7 @@ void updateScreen(String json, char startLine, bool withInit) { //handles the di
 }
 
 void moveCursorUp(){
-  if(currentMode == modeWeather) {
+  if(currentMode != modeDeviceSwitcher) {
     return;
   }
   Serial.print("up: ");
@@ -694,14 +695,15 @@ void advanceMode() {
 }
  
 void buttonPushed() {
-  if(lastTimeButtonPushed == 0 || millis() - lastTimeButtonPushed > 80) { //80 millisecond debounce
+  for(char i=0; i<buttonNumber; i++) {
+    detachInterrupt(digitalPinToInterrupt(buttonPins[i]));
+  }
+  boolean skipButtonFunction = false;
+  if(lastTimeButtonPushed == 0 || millis() - lastTimeButtonPushed > 50) { //80 millisecond debounce
     lastTimeButtonPushed = millis();
   } else {
     //too soon, so debounce!
-    return;
-  }
-  for(char i=0; i<buttonNumber; i++) {
-    detachInterrupt(digitalPinToInterrupt(buttonPins[i]));
+    skipButtonFunction = true;
   }
   timeOutForServerDataUpdates = millis();
   volatile int val;
@@ -709,19 +711,25 @@ void buttonPushed() {
   for(volatile char i=0; i<buttonNumber; i++) {
     hardwarePinNumber = buttonPins[i];
     val = digitalRead(hardwarePinNumber);
+    
     if(val == 1) {
+      if(millis() - backlightOnTime > backlightTimeout * 1000) {
+        skipButtonFunction = true; //if we're in LCD blackout, don't do button function, just turn on backlight
+      }
       backlightOn();
-      if(hardwarePinNumber == buttonUp) {
-        moveCursorUp();
-      }
-      if(hardwarePinNumber == buttonDown) {
-        moveCursorDown();
-      }
-      if(hardwarePinNumber == buttonChange) {
-        toggleDevice();
-      }
-      if(hardwarePinNumber == buttonMode) {
-        advanceMode();
+      if(!skipButtonFunction){
+        if(hardwarePinNumber == buttonUp) {
+          moveCursorUp();
+        }
+        if(hardwarePinNumber == buttonDown) {
+          moveCursorDown();
+        }
+        if(hardwarePinNumber == buttonChange) {
+          toggleDevice();
+        }
+        if(hardwarePinNumber == buttonMode) {
+          advanceMode();
+        }
       }
     }
   }
