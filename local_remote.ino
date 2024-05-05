@@ -483,6 +483,7 @@ void splitString(const String& input, char delimiter, String* outputArray, int a
 }
 
 void updateScreen(String json, char startLine, bool withInit) { //handles the display of everything
+  bool showTimingDebugInfo = false;
   lcd.clear();
   char buffer[12];
   if(currentMode == modeWeather) {
@@ -538,8 +539,10 @@ void updateScreen(String json, char startLine, bool withInit) { //handles the di
     lcd.print(buffer);
     lcd.setCursor(13, 3);
     lcd.print("% rel");
-    lcd.setCursor(17, 0);
-    lcd.print((millis() - updateTimes[1])/1000);
+    if(showTimingDebugInfo) {
+      lcd.setCursor(17, 0);
+      lcd.print((millis() - updateTimes[1])/1000);
+    }
   } else if(currentMode == modePower) {
     char format[] = "%6d";
     lcd.setCursor(0, 0);
@@ -574,8 +577,10 @@ void updateScreen(String json, char startLine, bool withInit) { //handles the di
     lcd.print(buffer);
     lcd.setCursor(19, 3);
     lcd.print("w");
-    lcd.setCursor(10, 0);
-    lcd.print((millis() - updateTimes[2])/1000);
+    if(showTimingDebugInfo) {
+      lcd.setCursor(10, 0);
+      lcd.print((millis() - updateTimes[2])/1000);
+    }
   } else {
     if(specialUrl != "") {
       return;
@@ -621,8 +626,10 @@ void updateScreen(String json, char startLine, bool withInit) { //handles the di
     }
     Serial.print("total menu items:");
     Serial.println((int)totalMenuItems);
-    lcd.setCursor(17, 0);
-    lcd.print((millis() - updateTimes[0])/1000);
+    if(showTimingDebugInfo) {
+      lcd.setCursor(17, 0);
+      lcd.print((millis() - updateTimes[0])/1000);
+    }
   }
 }
 
