@@ -20,7 +20,7 @@ const int hotspotLimitedTimeFrame = 340; //seconds
 const int hiatusLengthOfUiUpdatesAfterUserInteraction = 35;
 
 const int weatherRecordingInterval = 300;
-const int weatherUpdateInterval = 95;
+const int weatherUpdateInterval = 67;
 const int energyUpateInterval = 116;
 
 const double temperatureDeltaForChange = 1;
