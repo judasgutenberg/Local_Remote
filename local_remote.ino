@@ -571,7 +571,7 @@ void updateScreen(String json, char startLine, bool withInit) { //handles the di
     lcd.print(buffer);
     lcd.setCursor(19, 3);
     lcd.print("w");
-    lcd.setCursor(17, 0);
+    lcd.setCursor(10, 0);
     lcd.print(updateTimes[2]/1000);
   } else {
     if(specialUrl != "") {
