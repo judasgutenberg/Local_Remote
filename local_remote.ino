@@ -53,6 +53,7 @@ byte modeDeviceSwitcher = 0;
 byte modeWeather = 1;
 byte modePower = 2;
 byte modes[modeCount] = {modeDeviceSwitcher, modeWeather, modePower};
+long updateTimes[modeCount];
 signed char totalMenuItems = 1;
 char totalScreenLines = 4;
 String deviceJson = "";
@@ -117,14 +118,17 @@ void loop(){
           lcd.print("Getting weather data");
         }
         getWeatherData();
+        updateTimes[1] = millis();
       } else if (batPercent == -1000 || millis() % (energyUpateInterval * 1000) == 0) { //get temperatures every energyUpateInterval (maybe 69) seconds, alright!
         if(batPercent == -1000) {
           lcd.setCursor(0,3);
           lcd.print("Getting energy data");
         }
         getEnergyInfo();
+        updateTimes[2] = millis();
       } else {
         getControlFormData();
+        updateTimes[0] = millis();
       }
     }
   }
@@ -531,6 +535,8 @@ void updateScreen(String json, char startLine, bool withInit) { //handles the di
     lcd.print(buffer);
     lcd.setCursor(13, 3);
     lcd.print("% rel");
+    lcd.setCursor(17, 0);
+    lcd.print(updateTimes[1]/1000);
   } else if(currentMode == modePower) {
     char format[] = "%6d";
     lcd.setCursor(0, 0);
@@ -565,6 +571,8 @@ void updateScreen(String json, char startLine, bool withInit) { //handles the di
     lcd.print(buffer);
     lcd.setCursor(19, 3);
     lcd.print("w");
+    lcd.setCursor(17, 0);
+    lcd.print(updateTimes[2]/1000);
   } else {
     if(specialUrl != "") {
       return;
@@ -609,6 +617,8 @@ void updateScreen(String json, char startLine, bool withInit) { //handles the di
     }
     Serial.print("total menu items:");
     Serial.println((int)totalMenuItems);
+    lcd.setCursor(17, 0);
+    lcd.print(updateTimes[0]/1000);
   }
 }
 
@@ -699,7 +709,7 @@ void buttonPushed() {
     detachInterrupt(digitalPinToInterrupt(buttonPins[i]));
   }
   boolean skipButtonFunction = false;
-  if(lastTimeButtonPushed == 0 || millis() - lastTimeButtonPushed > 50) { //80 millisecond debounce
+  if(lastTimeButtonPushed == 0 || millis() - lastTimeButtonPushed > 150) { //150 millisecond debounce
     lastTimeButtonPushed = millis();
   } else {
     //too soon, so debounce!
@@ -708,6 +718,7 @@ void buttonPushed() {
   timeOutForServerDataUpdates = millis();
   volatile int val;
   volatile int hardwarePinNumber;
+  backlightOn();
   for(volatile char i=0; i<buttonNumber; i++) {
     hardwarePinNumber = buttonPins[i];
     val = digitalRead(hardwarePinNumber);
@@ -716,7 +727,7 @@ void buttonPushed() {
       if(millis() - backlightOnTime > backlightTimeout * 1000) {
         skipButtonFunction = true; //if we're in LCD blackout, don't do button function, just turn on backlight
       }
-      backlightOn();
+      
       if(!skipButtonFunction){
         if(hardwarePinNumber == buttonUp) {
           moveCursorUp();
