@@ -119,7 +119,7 @@ void loop(){
         }
         getWeatherData();
         updateTimes[1] = millis();
-      } else if (batPercent == -1000 || millis() % (energyUpateInterval * 1000) == 0) { //get temperatures every energyUpateInterval (maybe 69) seconds, alright!
+      } else if (batPercent == -1000 || millis() % (energyUpateInterval * 1000) == 0) { //get values every energyUpateInterval (maybe 69) seconds, alright!
         if(batPercent == -1000) {
           lcd.setCursor(0,3);
           lcd.print("Getting energy data");
@@ -536,7 +536,7 @@ void updateScreen(String json, char startLine, bool withInit) { //handles the di
     lcd.setCursor(13, 3);
     lcd.print("% rel");
     lcd.setCursor(17, 0);
-    lcd.print(updateTimes[1]/1000);
+    lcd.print((millis() - updateTimes[1])/1000);
   } else if(currentMode == modePower) {
     char format[] = "%6d";
     lcd.setCursor(0, 0);
@@ -572,7 +572,7 @@ void updateScreen(String json, char startLine, bool withInit) { //handles the di
     lcd.setCursor(19, 3);
     lcd.print("w");
     lcd.setCursor(10, 0);
-    lcd.print(updateTimes[2]/1000);
+    lcd.print((millis() - updateTimes[2])/1000);
   } else {
     if(specialUrl != "") {
       return;
@@ -618,7 +618,7 @@ void updateScreen(String json, char startLine, bool withInit) { //handles the di
     Serial.print("total menu items:");
     Serial.println((int)totalMenuItems);
     lcd.setCursor(17, 0);
-    lcd.print(updateTimes[0]/1000);
+    lcd.print((millis() - updateTimes[0])/1000);
   }
 }
 
