@@ -40,6 +40,7 @@ byte buttonPins[buttonNumber] = {buttonChange, buttonDown, buttonMode, buttonUp}
 String localCopyOfJson;
 long connectionFailureTime = 0;
 bool connectionFailureMode = false;
+bool allowInterrupts = false;
 long timeOutForServerDataUpdates;
 long lastTimeButtonPushed = 0;
 long oldWeatherRecordingTime = 0;
@@ -577,6 +578,7 @@ void updateScreen(String json, char startLine, bool withInit) { //handles the di
     if(specialUrl != "") {
       return;
     }
+    allowInterrupts = true;
     if(withInit == true) {
       menuBegin = 0;
       menuCursor = 0;
@@ -705,6 +707,9 @@ void advanceMode() {
 }
  
 void buttonPushed() {
+  if(!allowInterrupts) {
+    return;
+  }
   for(char i=0; i<buttonNumber; i++) {
     detachInterrupt(digitalPinToInterrupt(buttonPins[i]));
   }
