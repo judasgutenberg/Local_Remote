@@ -19,13 +19,13 @@ const int numberOfHotspotRebootsOverLimitedTimeframeBeforeEspReboot = 4; //reboo
 const int hotspotLimitedTimeFrame = 340; //seconds
 const int hiatusLengthOfUiUpdatesAfterUserInteraction = 35;
 
-const int weatherRecordingInterval = 300;
+const int weatherRecordingInterval = 600;
 const int weatherUpdateInterval = 67;
 const int energyUpateInterval = 116;
 
-const double temperatureDeltaForChange = 1;
-const double pressureDeltaForChange = 1;
-const double humidityDeltaForChange = 1;
+const double temperatureDeltaForChange = 0.2;
+const double pressureDeltaForChange = 0.5;
+const double humidityDeltaForChange = 0.3;
 
 const int backlightTimeout = 300; //how long the backlight stays lit after we start up or a button is pushed.  the backlight uses 100 times more power than the rest of the LCD module
  
