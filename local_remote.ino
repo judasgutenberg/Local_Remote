@@ -107,7 +107,9 @@ void loop(){
     lcd.noBacklight(); //power down the backlight if no buttons have been pushed in awhile (configured as backlightTimeout in config.c)
   }
   if(totalMenuItems == 0 || specialUrl != "" || (millis() % 5000  == 0 && ( millis() - timeOutForServerDataUpdates > hiatusLengthOfUiUpdatesAfterUserInteraction * 1000 || timeOutForServerDataUpdates == 0))) {
-    
+    if(millis() - updateTimes[0] > rebootPollingTimeout * 1000) {
+      rebootEsp();
+    }
     if(deviceJson == "") {
       getDeviceInfo();
       lcd.setCursor(0,1);
@@ -148,7 +150,6 @@ void WiFiConnect() {
     wiFiSeconds++;
     if(wiFiSeconds > 80) {
       Serial.println("WiFi taking too long");
- 
       wiFiSeconds = 0; //if you don't do this, you'll be stuck in a rebooting loop if WiFi fails once
     }
   }
@@ -182,7 +183,6 @@ void getWeatherData() {
     clientGet.stop();
     return;
   } else {
- 
      Serial.println(url);
      clientGet.println("GET " + url + " HTTP/1.1");
      clientGet.print("Host: ");
@@ -193,7 +193,6 @@ void getWeatherData() {
      unsigned long timeoutP = millis();
      while (clientGet.available() == 0) {
        if (millis() - timeoutP > 10000) {
-
         if(clientGet.connect(dataSourceHost, httpGetPort)){
          //timeOffset = timeOffset + timeSkewAmount; //in case two probes are stepping on each other, make this one skew a 20 seconds from where it tried to upload data
          clientGet.println("GET / HTTP/1.1");
@@ -219,7 +218,6 @@ void getWeatherData() {
         String firstLine = lineArray[0];
         splitString(firstLine, '*', dataArray, 3);
         Serial.println(firstLine);
-        
         oldTemperatureValue = temperatureValue;
         oldHumidityValue = humidityValue;
         oldPressureValue = pressureValue;
@@ -790,4 +788,9 @@ void sendDataToController(char ordinal, char value) {
       }
     }
   }
+}
+
+void rebootEsp() {
+  Serial.println("Rebooting ESP");
+  ESP.restart();
 }
