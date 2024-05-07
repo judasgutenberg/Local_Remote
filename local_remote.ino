@@ -55,6 +55,7 @@ byte modeWeather = 1;
 byte modePower = 2;
 byte modes[modeCount] = {modeDeviceSwitcher, modeWeather, modePower};
 long updateTimes[modeCount];
+long connectTimes[modeCount];
 signed char totalMenuItems = 1;
 char totalScreenLines = 4;
 String deviceJson = "";
@@ -107,7 +108,7 @@ void loop(){
     lcd.noBacklight(); //power down the backlight if no buttons have been pushed in awhile (configured as backlightTimeout in config.c)
   }
   if(totalMenuItems == 0 || specialUrl != "" || (millis() % 5000  == 0 && ( millis() - timeOutForServerDataUpdates > hiatusLengthOfUiUpdatesAfterUserInteraction * 1000 || timeOutForServerDataUpdates == 0))) {
-    if(millis() - updateTimes[0] > rebootPollingTimeout * 1000) {
+    if(millis() - connectTimes[modeDeviceSwitcher] > rebootPollingTimeout * 1000) {
       rebootEsp();
     }
     if(deviceJson == "") {
@@ -115,25 +116,25 @@ void loop(){
       lcd.setCursor(0,1);
       lcd.print("Getting device data");
     } else {
-      if(temperatureValue == -100 || millis() - updateTimes[1] > weatherUpdateInterval * 1000) { //get temperatures every weatherUpdateInterval seconds
+      if(temperatureValue == -100 || millis() - updateTimes[modeWeather] > weatherUpdateInterval * 1000) { //get temperatures every weatherUpdateInterval seconds
         if(temperatureValue == -100) {
           lcd.setCursor(0,2);
           lcd.print("Getting weather data");
         }
         getWeatherData();
-        updateTimes[1] = millis();
+        updateTimes[modeWeather] = millis();
       }
-      if (batPercent == -1000 || millis() - updateTimes[2] > energyUpateInterval * 1000) { //get values every energyUpateInterval (maybe 69) seconds, alright!
+      if (batPercent == -1000 || millis() - updateTimes[modePower] > energyUpateInterval * 1000) { //get values every energyUpateInterval (maybe 69) seconds, alright!
         if(batPercent == -1000) {
           lcd.setCursor(0,3);
           lcd.print("Getting energy data");
         }
         getEnergyInfo();
-        updateTimes[2] = millis();
+        updateTimes[modePower] = millis();
       } 
-      if(updateTimes[0] == 0 || millis() - updateTimes[0] > pollingGranularity * 1000) {
+      if(updateTimes[modeDeviceSwitcher] == 0 || millis() - updateTimes[0] > pollingGranularity * 1000) {
         getControlFormData();
-        updateTimes[0] = millis();
+        updateTimes[modeDeviceSwitcher] = millis();
       }
     }
   }
@@ -209,6 +210,7 @@ void getWeatherData() {
     delay(2); //see if this improved data reception. OMG IT TOTALLY WORKED!!!
  
     while(clientGet.available()){
+      connectTimes[modeWeather] = millis();
       String retLine = clientGet.readStringUntil('\r');//when i was reading string until '\n' i didn't get any JSON most of the time!
       retLine.trim();
       if(retLine.indexOf('*') >0 && retLine.indexOf('|') >0) {
@@ -372,6 +374,7 @@ void getEnergyInfo() { //goes on the internet to get the latest solar energy dat
      }
     delay(2); //see if this improved data reception. OMG IT TOTALLY WORKED!!!
     while(clientGet.available()){
+      connectTimes[modePower] = millis();
       String retLine = clientGet.readStringUntil('\r');//when i was reading string until '\n' i didn't get any JSON most of the time!
       retLine.trim();
       if(retLine.charAt(0) == '{') {
@@ -443,6 +446,7 @@ void getControlFormData() {
     bool receivedData = false;
     bool receivedDataJson = false;
     while(clientGet.available()){
+      connectTimes[modeDeviceSwitcher] = millis();
       receivedData = true;
       String retLine = clientGet.readStringUntil('\r');//when i was reading string until '\n' i didn't get any JSON most of the time!
       retLine.trim();
