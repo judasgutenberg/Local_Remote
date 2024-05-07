@@ -54,8 +54,8 @@ byte modeDeviceSwitcher = 0;
 byte modeWeather = 1;
 byte modePower = 2;
 byte modes[modeCount] = {modeDeviceSwitcher, modeWeather, modePower};
-long updateTimes[modeCount];
-long connectTimes[modeCount];
+long updateTimes[modeCount] = {0,0,0};
+long connectTimes[modeCount] = {0,0,0};
 signed char totalMenuItems = 1;
 char totalScreenLines = 4;
 String deviceJson = "";
@@ -108,7 +108,7 @@ void loop(){
     lcd.noBacklight(); //power down the backlight if no buttons have been pushed in awhile (configured as backlightTimeout in config.c)
   }
   if(totalMenuItems == 0 || specialUrl != "" || (millis() % 5000  == 0 && ( millis() - timeOutForServerDataUpdates > hiatusLengthOfUiUpdatesAfterUserInteraction * 1000 || timeOutForServerDataUpdates == 0))) {
-    if(millis() - connectTimes[modeDeviceSwitcher] > rebootPollingTimeout * 1000) {
+    if(millis() - connectTimes[modeDeviceSwitcher] > rebootPollingTimeout * 1000 && millis() > allowanceForBoot * 1000) {
       rebootEsp();
     }
     if(deviceJson == "") {
