@@ -13,10 +13,7 @@ const int pollingGranularity = 4; //how often to poll backend in seconds, 4 make
 const int rebootPollingTimeout = 300; //if no polling in 300 seconds, reboot the ESP
 const int connectionFailureRetrySeconds = 4;
 const int connectionRetryNumber = 22;
-
-const int granularityWhenInConnectionFailureMode = 5; //40 was too little time for everything to come up and start working reliably, at least with my sketchy cellular connection
-const int numberOfHotspotRebootsOverLimitedTimeframeBeforeEspReboot = 4; //reboots moxee four times in 340 seconds (number below) and then reboots itself
-const int hotspotLimitedTimeFrame = 340; //seconds
+const int allowanceForBoot = 70;
 const int hiatusLengthOfUiUpdatesAfterUserInteraction = 35;
 
 const int weatherRecordingInterval = 600;
