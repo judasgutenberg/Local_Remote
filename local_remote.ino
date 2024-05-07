@@ -792,5 +792,9 @@ void sendDataToController(char ordinal, char value) {
 
 void rebootEsp() {
   Serial.println("Rebooting ESP");
+  backlightOn();
+  lcd.clear();
+  lcd.setCursor(0,0);
+  lcd.print("Forced to restart...");
   ESP.restart();
 }
