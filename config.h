@@ -14,7 +14,8 @@ extern const int pollingGranularity; //how often to poll backend in seconds, 4 m
 extern const int rebootPollingTimeout;
 extern const int connectionFailureRetrySeconds;
 extern const int connectionRetryNumber;
-extern const  int hiatusLengthOfUiUpdatesAfterUserInteraction;
+extern const int allowanceForBoot;
+extern const int hiatusLengthOfUiUpdatesAfterUserInteraction;
 
 extern const int weatherRecordingInterval;
 extern const int weatherUpdateInterval;
