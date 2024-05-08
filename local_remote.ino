@@ -56,6 +56,7 @@ byte modePower = 2;
 byte modes[modeCount] = {modeDeviceSwitcher, modeWeather, modePower};
 long updateTimes[modeCount] = {0,0,0};
 long connectTimes[modeCount] = {0,0,0};
+long lastScreenInit = 0;
 signed char totalMenuItems = 1;
 char totalScreenLines = 4;
 String deviceJson = "";
@@ -112,6 +113,10 @@ void loop(){
       Serial.print("Too long to poll! Seconds:");
       Serial.println((millis() - connectTimes[modeDeviceSwitcher]) / 1000);
       rebootEsp();
+    }
+    if(millis() - timeOutForServerDataUpdates > 60 * 1000 && millis() - lastScreenInit  > hiatusLengthOfUiUpdatesAfterUserInteraction * 1000 ) {  //every hiatusLengthOfUiUpdatesAfterUserInteraction seconds of idle, reset screen
+      lcd.init();
+      lastScreenInit = millis();
     }
     if(deviceJson == "") {
       getDeviceInfo();
