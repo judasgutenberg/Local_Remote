@@ -109,6 +109,8 @@ void loop(){
   }
   if(totalMenuItems == 0 || specialUrl != "" || (millis() % 5000  == 0 && ( millis() - timeOutForServerDataUpdates > hiatusLengthOfUiUpdatesAfterUserInteraction * 1000 || timeOutForServerDataUpdates == 0))) {
     if(millis() - connectTimes[modeDeviceSwitcher] > rebootPollingTimeout * 1000 && millis() > allowanceForBoot * 1000) {
+      Serial.print("Too long to poll! Seconds:");
+      Serial.println((millis() - connectTimes[modeDeviceSwitcher]) / 1000);
       rebootEsp();
     }
     if(deviceJson == "") {
