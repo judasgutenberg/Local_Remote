@@ -116,6 +116,7 @@ void loop(){
     }
     if(millis() - timeOutForServerDataUpdates > 60 * 1000 && millis() - lastScreenInit  > hiatusLengthOfUiUpdatesAfterUserInteraction * 1000 ) {  //every hiatusLengthOfUiUpdatesAfterUserInteraction seconds of idle, reset screen
       lcd.init();
+      lcd.noBacklight();
       lastScreenInit = millis();
     }
     if(deviceJson == "") {
