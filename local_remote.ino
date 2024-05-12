@@ -1,4 +1,5 @@
 
+
 /* 
 Local Remote, Gus Mueller, April 22 2024
 Provides a local control-panel for the remote-control system here:
@@ -13,7 +14,7 @@ https://github.com/judasgutenberg/Esp8266_RemoteControl
 
 #include "config.h"
 
-//so far i have failed to get the "EEProm" to work
+//pseudoEPROM will work if you have the right settings in Arduino
 struct nonVolatileStruct {
   char  controlIpAddress[30];
   char  weatherIpAddress[30];
@@ -88,7 +89,7 @@ void setup(){
   for(char i=0; i<buttonNumber; i++) {
     pinMode(buttonPins[i], OUTPUT); //seems to work to make an unconnected INPUT default as low
     //Serial.println(digitalPinToInterrupt(buttonPins[i]));
-    attachInterrupt(digitalPinToInterrupt(buttonPins[i]), buttonPushed, CHANGE);
+    attachInterrupt(digitalPinToInterrupt(buttonPins[i]), buttonPushed, RISING);
   }
  
   EEPROM.begin(sizeof(nonVolatileStruct));
@@ -650,7 +651,12 @@ void moveCursorUp(){
   Serial.print("up: ");
   Serial.print((int)menuCursor);
   Serial.println(" * " );
-  lcd.setCursor(0, menuCursor);
+
+  if(menuCursor > totalScreenLines - 1) {
+    lcd.setCursor(0, totalScreenLines - 1);
+  } else {
+    lcd.setCursor(0, menuCursor);
+  }
   lcd.print(" ");
   if(menuBegin > 0) {
     //scroll screen up:
@@ -665,7 +671,7 @@ void moveCursorUp(){
     }
   }
   if(menuCursor == totalScreenLines) {
-    menuCursor = totalScreenLines - 2;
+    menuCursor = totalScreenLines - 1;
   }
   lcd.setCursor(0, menuCursor);
   lcd.print(">");
@@ -701,9 +707,15 @@ void toggleDevice(){
   if(currentMode != modeDeviceSwitcher) {
     return;
   }
-  Serial.println("toggle");
-  Serial.println((int)menuCursor);
-  lcd.setCursor(0, menuCursor);
+  Serial.print("TOGGLE! screen: ");
+  if(menuCursor > totalScreenLines - 1) {
+    lcd.setCursor(0, totalScreenLines - 1);
+    Serial.print(totalScreenLines - 1);
+  } else {
+    lcd.setCursor(0, menuCursor);
+     Serial.print(menuCursor);
+  }
+  Serial.print(" for menu item: ");
   if(getPinValue(menuCursor) == 0) {
     lcd.print(">*");
     sendDataToController(menuCursor, 1);
@@ -769,7 +781,7 @@ void buttonPushed() {
     }
   }
   for(char i=0; i<buttonNumber; i++) {
-    attachInterrupt(digitalPinToInterrupt(buttonPins[i]), buttonPushed, CHANGE);
+    attachInterrupt(digitalPinToInterrupt(buttonPins[i]), buttonPushed, RISING);
   }
 }
 
@@ -778,7 +790,6 @@ char getPinValue(char ordinal) {
   char value = -1;
   if(jsonBuffer[nodeName]) {
     for(int i=0; i<jsonBuffer[nodeName].size(); i++) {
-      lcd.setCursor(0, i);
       value = (int)jsonBuffer[nodeName][i]["value"];
       if(ordinal == i) {
         return value;
