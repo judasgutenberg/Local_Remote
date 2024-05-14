@@ -704,6 +704,9 @@ void moveCursorDown(){
 }
 
 void toggleDevice(){
+  if(currentMode == modeWeather) {
+    rebootEsp();
+  }
   if(currentMode != modeDeviceSwitcher) {
     return;
   }
