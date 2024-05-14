@@ -1,5 +1,3 @@
-
-
 /* 
 Local Remote, Gus Mueller, April 22 2024
 Provides a local control-panel for the remote-control system here:
@@ -11,7 +9,6 @@ https://github.com/judasgutenberg/Esp8266_RemoteControl
 #include <ESP8266WebServer.h>
 #include <LiquidCrystal_I2C.h>
 #include <ESP_EEPROM.h>
-
 #include "config.h"
 
 //pseudoEPROM will work if you have the right settings in Arduino
@@ -19,7 +16,6 @@ struct nonVolatileStruct {
   char  controlIpAddress[30];
   char  weatherIpAddress[30];
 } eepromData;
-
 
 void ICACHE_RAM_ATTR buttonPushed();
 StaticJsonDocument<1000> jsonBuffer;
@@ -74,7 +70,6 @@ int pvPower;
 int batPower;
 int batPercent = -1000;
 int loadPower;
-
 
 LiquidCrystal_I2C lcd(0x27,20,totalScreenLines); 
 
@@ -217,7 +212,6 @@ void getWeatherData() {
        } //if( millis() -  
      }
     delay(2); //see if this improved data reception. OMG IT TOTALLY WORKED!!!
- 
     while(clientGet.available()){
       connectTimes[modeWeather] = millis();
       String retLine = clientGet.readStringUntil('\r');//when i was reading string until '\n' i didn't get any JSON most of the time!
@@ -262,7 +256,6 @@ void getDeviceInfo() { //goes on the internet to get the latest ip addresses of 
     clientGet.stop();
     return;
   } else {
- 
      Serial.println(url);
      clientGet.println("GET " + url + " HTTP/1.1");
      clientGet.print("Host: ");
@@ -273,7 +266,6 @@ void getDeviceInfo() { //goes on the internet to get the latest ip addresses of 
      unsigned long timeoutP = millis();
      while (clientGet.available() == 0) {
        if (millis() - timeoutP > 10000) {
-
         if(clientGet.connect(dataSourceHost, httpGetPort)){
          //timeOffset = timeOffset + timeSkewAmount; //in case two probes are stepping on each other, make this one skew a 20 seconds from where it tried to upload data
          clientGet.println("GET / HTTP/1.1");
@@ -704,7 +696,7 @@ void moveCursorDown(){
 }
 
 void toggleDevice(){
-  if(currentMode == modeWeather) {
+  if(currentMode == modeWeather) { //reboot the system if toggle is hit while we're looking at weather
     rebootEsp();
   }
   if(currentMode != modeDeviceSwitcher) {
