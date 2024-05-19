@@ -81,11 +81,8 @@ void setup(){
   lcd.setCursor(0,0);
   lcd.print("Starting...");
   WiFiConnect();
-  for(char i=0; i<buttonNumber; i++) {
-    pinMode(buttonPins[i], OUTPUT); //seems to work to make an unconnected INPUT default as low
-    //Serial.println(digitalPinToInterrupt(buttonPins[i]));
-    attachInterrupt(digitalPinToInterrupt(buttonPins[i]), buttonPushed, RISING);
-  }
+ 
+  enableInterripts();
  
   EEPROM.begin(sizeof(nonVolatileStruct));
   if(EEPROM.percentUsed()>=0) {
@@ -101,7 +98,15 @@ void setup(){
 }
   
 void loop(){
-  if(millis() - backlightOnTime > backlightTimeout * 1000) {
+  if(millis() - (long)backlightOnTime > backlightTimeout * 1000 && millis()/1000 - (long)backlightOnTime /1000  != 0) {
+    Serial.print(millis());
+    Serial.print(" | ");
+    Serial.print(backlightOnTime);
+    Serial.print(" | ");
+    Serial.print(backlightTimeout);
+    Serial.print(" | ");
+    Serial.print((millis() - backlightOnTime)/1000 );
+    Serial.println();
     lcd.noBacklight(); //power down the backlight if no buttons have been pushed in awhile (configured as backlightTimeout in config.c)
   }
   if(totalMenuItems == 0 || specialUrl != "" || (millis() % 5000  == 0 && ( millis() - timeOutForServerDataUpdates > hiatusLengthOfUiUpdatesAfterUserInteraction * 1000 || timeOutForServerDataUpdates == 0))) {
@@ -486,6 +491,7 @@ void splitString(const String& input, char delimiter, String* outputArray, int a
 }
 
 void updateScreen(String json, char startLine, bool withInit) { //handles the display of everything
+  allowInterrupts = false;
   bool showTimingDebugInfo = false;
   lcd.clear();
   char buffer[12];
@@ -634,6 +640,7 @@ void updateScreen(String json, char startLine, bool withInit) { //handles the di
       lcd.print((millis() - updateTimes[0])/1000);
     }
   }
+  allowInterrupts = true;
 }
 
 void moveCursorUp(){
@@ -749,7 +756,7 @@ void buttonPushed() {
   timeOutForServerDataUpdates = millis();
   volatile int val;
   volatile int hardwarePinNumber;
-  backlightOn();
+  //backlightOn();
   for(volatile char i=0; i<buttonNumber; i++) {
     hardwarePinNumber = buttonPins[i];
     val = digitalRead(hardwarePinNumber);
@@ -775,7 +782,13 @@ void buttonPushed() {
       }
     }
   }
-  for(char i=0; i<buttonNumber; i++) {
+  backlightOn();
+  enableInterripts();
+}
+
+void enableInterripts() {
+   for(char i=0; i<buttonNumber; i++) {
+    pinMode(buttonPins[i], OUTPUT);
     attachInterrupt(digitalPinToInterrupt(buttonPins[i]), buttonPushed, RISING);
   }
 }
