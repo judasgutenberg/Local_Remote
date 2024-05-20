@@ -4,7 +4,7 @@ This is a local remote client for the ESP8266-based remote control. It's basical
 ![alt text](localremote.jpg?raw=true)
 
 
-This local remote uses a 20 by 4 line LCD display (with a YwRobot I2C backpack, with I2C address at decimal 27) and four pushbuttons as a user interface.  
+This local remote uses a NodeMCU controller board (with ESP8266), a 20 by 4 line LCD display (with a YwRobot I2C backpack, with I2C address at decimal 27) and four pushbuttons as a user interface.  
 ![alt text](local_remote_schematic.jpg?raw=true)
 
 The specific information about what is controlled is retrieved via JSON, and this can be scrolled through by a user to turn devices on and off.
