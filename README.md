@@ -4,6 +4,9 @@ This is a local remote client for the ESP8266-based remote control. It's basical
 ![alt text](localremote.jpg?raw=true)
 
 
-This local remote uses a 20 by 4 line LCD display (with a YwRobot I2C backpack) and four pushbuttons as a user interface.  The specific information about what is controlled is retrieved via JSON, and this can be scrolled through by a user to turn devices on and off.
+This local remote uses a 20 by 4 line LCD display (with a YwRobot I2C backpack, with I2C address at decimal 27) and four pushbuttons as a user interface.  
+![alt text](local_remote_schematic.jpg?raw=true)
+
+The specific information about what is controlled is retrieved via JSON, and this can be scrolled through by a user to turn devices on and off.
 
 The four buttons are mode, up, down, and switch.  Mode allows you to switch the screen from checking on your energy data (from your solar panel and inverter, though for now all I support is SolArk inverters) to monitoring the weather data of some other ESP8266 on the local network to controlling the device_features on a remote controller (possibly a different one from the source of weather data).  The up/down buttons are for moving up and down the scrolling display and the switch allows you to turn an on device off or an off device on.
