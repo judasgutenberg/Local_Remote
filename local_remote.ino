@@ -247,7 +247,7 @@ void getDeviceInfo() { //goes on the internet to get the latest ip addresses of 
   WiFiClient clientGet;
   const int httpGetPort = 80;
   String url;
-  url = "/weather/data.php?storagePassword=" + (String)storagePassword + "&mode=getDevices";
+  url = "/weather/data.php?storagePassword=" + (String)storagePassword + "&mode=getDevices&device_ids=" + (String)weatherDevice + "*" + (String)controlDevice + "*" + locationId;
 
   char * dataSourceHost = "randomsprocket.com";
   int attempts = 0;
