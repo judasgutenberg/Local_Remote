@@ -815,7 +815,7 @@ void sendDataToController(char ordinal, char value) {
       id = (String)jsonBuffer[nodeName][i]["id"];
       if((int)ordinal == i) {
         //we just snag one of the updates and use it to send data to the remote controller
-        specialUrl =  (String)"/writeLocalData?id=" + id + "&on=" + (int)value;
+        specialUrl =  (String)"/writeLocalData?id=" + id + "&on=" + (int)value + "&ipaddress=" + ourIpAddress;
       }
     }
   }
