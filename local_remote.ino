@@ -673,6 +673,7 @@ void moveCursorUp(){
       Serial.println((int)menuCursor);
       menuCursor = 0;
     }
+    updateScreen("", menuBegin, false);
   }
   if(menuCursor == totalScreenLines) {
     //menuCursor = totalScreenLines - 1;
@@ -702,6 +703,7 @@ void moveCursorDown(){
     updateScreen("", menuBegin, false);
     lcd.setCursor(0, totalScreenLines - 1);
   } else {
+    updateScreen("", menuBegin, false);
     lcd.setCursor(0, menuCursor);
   }
   lcd.print(">");
