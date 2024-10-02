@@ -98,24 +98,24 @@ void setup(){
 }
   
 void loop(){
-  if(millis() - (long)backlightOnTime > backlightTimeout * 1000 && millis()/1000 - (long)backlightOnTime /1000  != 0) {
+  if(millis() - (long)backlightOnTime > backlight_timeout * 1000 && millis()/1000 - (long)backlightOnTime /1000  != 0) {
     Serial.print(millis());
     Serial.print(" | ");
     Serial.print(backlightOnTime);
     Serial.print(" | ");
-    Serial.print(backlightTimeout);
+    Serial.print(backlight_timeout);
     Serial.print(" | ");
     Serial.print((millis() - backlightOnTime)/1000 );
     Serial.println();
-    lcd.noBacklight(); //power down the backlight if no buttons have been pushed in awhile (configured as backlightTimeout in config.c)
+    lcd.noBacklight(); //power down the backlight if no buttons have been pushed in awhile (configured as backlight_timeout in config.c)
   }
-  if(totalMenuItems == 0 || specialUrl != "" || (millis() % 5000  == 0 && ( millis() - timeOutForServerDataUpdates > hiatusLengthOfUiUpdatesAfterUserInteraction * 1000 || timeOutForServerDataUpdates == 0))) {
-    if(millis() - connectTimes[modeDeviceSwitcher] > rebootPollingTimeout * 1000 && millis() > allowanceForBoot * 1000) {
+  if(totalMenuItems == 0 || specialUrl != "" || (millis() % 5000  == 0 && ( millis() - timeOutForServerDataUpdates > hiatus_length_of_ui_updates_after_user_interaction * 1000 || timeOutForServerDataUpdates == 0))) {
+    if(millis() - connectTimes[modeDeviceSwitcher] > reboot_polling_timeout * 1000 && millis() > allowance_for_boot * 1000) {
       Serial.print("Too long to poll! Seconds:");
       Serial.println((millis() - connectTimes[modeDeviceSwitcher]) / 1000);
       rebootEsp();
     }
-    if(millis() - timeOutForServerDataUpdates > 60 * 1000 && millis() - lastScreenInit  > hiatusLengthOfUiUpdatesAfterUserInteraction * 1000 ) {  //every hiatusLengthOfUiUpdatesAfterUserInteraction seconds of idle, reset screen
+    if(millis() - timeOutForServerDataUpdates > 60 * 1000 && millis() - lastScreenInit  > hiatus_length_of_ui_updates_after_user_interaction * 1000 ) {  //every hiatus_length_of_ui_updates_after_user_interaction seconds of idle, reset screen
       lcd.init();
       lcd.noBacklight();
       lastScreenInit = millis();
@@ -125,7 +125,7 @@ void loop(){
       lcd.setCursor(0,1);
       lcd.print("Getting device data");
     } else {
-      if(temperatureValue == -100 || millis() - updateTimes[modeWeather] > weatherUpdateInterval * 1000) { //get temperatures every weatherUpdateInterval seconds
+      if(temperatureValue == -100 || millis() - updateTimes[modeWeather] > weather_update_interval * 1000) { //get temperatures every weather_update_interval seconds
         if(temperatureValue == -100) {
           lcd.setCursor(0,2);
           lcd.print("Getting weather data");
@@ -133,7 +133,7 @@ void loop(){
         getWeatherData();
         updateTimes[modeWeather] = millis();
       }
-      if (batPercent == -1000 || millis() - updateTimes[modePower] > energyUpateInterval * 1000) { //get values every energyUpateInterval (maybe 69) seconds, alright!
+      if (batPercent == -1000 || millis() - updateTimes[modePower] > energy_update_interval * 1000) { //get values every energy_update_interval (maybe 69) seconds, alright!
         if(batPercent == -1000) {
           lcd.setCursor(0,3);
           lcd.print("Getting energy data");
@@ -141,7 +141,7 @@ void loop(){
         getEnergyInfo();
         updateTimes[modePower] = millis();
       } 
-      if(updateTimes[modeDeviceSwitcher] == 0 || millis() - updateTimes[0] > pollingGranularity * 1000) {
+      if(updateTimes[modeDeviceSwitcher] == 0 || millis() - updateTimes[0] > polling_granularity * 1000) {
         Serial.println("get form data");
         getControlFormData();
         updateTimes[modeDeviceSwitcher] = millis();
@@ -182,14 +182,14 @@ void getWeatherData() {
   const int httpGetPort = 80;
   String url;
   url = "/weatherdata";
-  const char* dataSourceHost = weatherIpAddress.c_str();
+  const char* data_source_host = weatherIpAddress.c_str();
   int attempts = 0;
-  while(!clientGet.connect(dataSourceHost, httpGetPort) && attempts < connectionRetryNumber) {
+  while(!clientGet.connect(data_source_host, httpGetPort) && attempts < connection_retry_number) {
     attempts++;
     delay(100);
   }
   Serial.println();
-  if (attempts >= connectionRetryNumber) {
+  if (attempts >= connection_retry_number) {
     Serial.print("Weather info connection failed");
     clientGet.stop();
     return;
@@ -197,18 +197,18 @@ void getWeatherData() {
      Serial.println(url);
      clientGet.println("GET " + url + " HTTP/1.1");
      clientGet.print("Host: ");
-     clientGet.println(dataSourceHost);
+     clientGet.println(data_source_host);
      clientGet.println("User-Agent: ESP8266/1.0");
      clientGet.println("Accept-Encoding: identity");
      clientGet.println("Connection: close\r\n\r\n");
      unsigned long timeoutP = millis();
      while (clientGet.available() == 0) {
        if (millis() - timeoutP > 10000) {
-        if(clientGet.connect(dataSourceHost, httpGetPort)){
+        if(clientGet.connect(data_source_host, httpGetPort)){
          //timeOffset = timeOffset + timeSkewAmount; //in case two probes are stepping on each other, make this one skew a 20 seconds from where it tried to upload data
          clientGet.println("GET / HTTP/1.1");
          clientGet.print("Host: ");
-         clientGet.println(dataSourceHost);
+         clientGet.println(data_source_host);
          clientGet.println("User-Agent: ESP8266/1.0");
          clientGet.println("Accept-Encoding: identity");
          clientGet.println("Connection: close\r\n\r\n");
@@ -248,16 +248,16 @@ void getDeviceInfo() { //goes on the internet to get the latest ip addresses of 
   WiFiClient clientGet;
   const int httpGetPort = 80;
   String url;
-  url = "/weather/data.php?storagePassword=" + (String)storagePassword + "&mode=getDevices&device_ids=" + (String)weatherDevice + "*" + (String)controlDevice + "*" + locationId;
+  url = "/weather/data.php?storagePassword=" + (String)storage_password + "&mode=getDevices&device_ids=" + (String)weather_device + "*" + (String)control_device;
 
-  char * dataSourceHost = "randomsprocket.com";
+  char * data_source_host = "randomsprocket.com";
   int attempts = 0;
-  while(!clientGet.connect(dataSourceHost, httpGetPort) && attempts < connectionRetryNumber) {
+  while(!clientGet.connect(data_source_host, httpGetPort) && attempts < connection_retry_number) {
     attempts++;
     delay(100);
   }
   Serial.println();
-  if (attempts >= connectionRetryNumber) {
+  if (attempts >= connection_retry_number) {
     Serial.print("Device info connection failed");
     clientGet.stop();
     return;
@@ -265,18 +265,18 @@ void getDeviceInfo() { //goes on the internet to get the latest ip addresses of 
      Serial.println(url);
      clientGet.println("GET " + url + " HTTP/1.1");
      clientGet.print("Host: ");
-     clientGet.println(dataSourceHost);
+     clientGet.println(data_source_host);
      clientGet.println("User-Agent: ESP8266/1.0");
      clientGet.println("Accept-Encoding: identity");
      clientGet.println("Connection: close\r\n\r\n");
      unsigned long timeoutP = millis();
      while (clientGet.available() == 0) {
        if (millis() - timeoutP > 10000) {
-        if(clientGet.connect(dataSourceHost, httpGetPort)){
+        if(clientGet.connect(data_source_host, httpGetPort)){
          //timeOffset = timeOffset + timeSkewAmount; //in case two probes are stepping on each other, make this one skew a 20 seconds from where it tried to upload data
          clientGet.println("GET / HTTP/1.1");
          clientGet.print("Host: ");
-         clientGet.println(dataSourceHost);
+         clientGet.println(data_source_host);
          clientGet.println("User-Agent: ESP8266/1.0");
          clientGet.println("Accept-Encoding: identity");
          clientGet.println("Connection: close\r\n\r\n");
@@ -303,7 +303,7 @@ void getDeviceInfo() { //goes on the internet to get the latest ip addresses of 
             Serial.print(ipAddress);
             Serial.print(" ");
             Serial.println(deviceId);
-            if(deviceId == (int)weatherDevice){
+            if(deviceId == (int)weather_device){
               if(weatherIpAddress != ipAddress){
                 weatherIpAddress = ipAddress; 
                 const char* cString = weatherIpAddress.c_str();
@@ -311,7 +311,7 @@ void getDeviceInfo() { //goes on the internet to get the latest ip addresses of 
                 eepromData.weatherIpAddress[sizeof(eepromData.weatherIpAddress) - 1] = '\0';
                 eepromUpdateNeeded = true;
               }            
-            } else if(deviceId == (int)controlDevice){
+            } else if(deviceId == (int)control_device){
               if(controlIpAddress != ipAddress){
                 controlIpAddress = ipAddress; 
                 const char* cString = controlIpAddress.c_str();
@@ -324,9 +324,9 @@ void getDeviceInfo() { //goes on the internet to get the latest ip addresses of 
         if(eepromUpdateNeeded) {
           EEPROM.put(0, eepromData);
           if(!EEPROM.commit()){
-            Serial.println("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxEeprom update failed.");
+            Serial.println("Eeprom update failed.");
           } else {
-            Serial.println("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxEeprom update SUCCEEDED!!!!.");
+            Serial.println("Eeprom update SUCCEEDED!!!!.");
           }
         }
       } else {
@@ -342,16 +342,16 @@ void getEnergyInfo() { //goes on the internet to get the latest solar energy dat
   WiFiClient clientGet;
   const int httpGetPort = 80;
   String url;
-  url = "/weather/data.php?storagePassword=" + (String)storagePassword + "&mode=getEnergyInfo";
+  url = "/weather/data.php?storage_password=" + (String)storage_password + "&mode=getEnergyInfo";
 
-  char * dataSourceHost = "randomsprocket.com";
+  char * data_source_host = "randomsprocket.com";
   int attempts = 0;
-  while(!clientGet.connect(dataSourceHost, httpGetPort) && attempts < connectionRetryNumber) {
+  while(!clientGet.connect(data_source_host, httpGetPort) && attempts < connection_retry_number) {
     attempts++;
     delay(100);
   }
   Serial.println();
-  if (attempts >= connectionRetryNumber) {
+  if (attempts >= connection_retry_number) {
     Serial.print("Solar info connection failed");
     clientGet.stop();
     return;
@@ -359,18 +359,18 @@ void getEnergyInfo() { //goes on the internet to get the latest solar energy dat
      Serial.println(url);
      clientGet.println("GET " + url + " HTTP/1.1");
      clientGet.print("Host: ");
-     clientGet.println(dataSourceHost);
+     clientGet.println(data_source_host);
      clientGet.println("User-Agent: ESP8266/1.0");
      clientGet.println("Accept-Encoding: identity");
      clientGet.println("Connection: close\r\n\r\n");
      unsigned long timeoutP = millis();
      while (clientGet.available() == 0) {
        if (millis() - timeoutP > 10000) {
-        if(clientGet.connect(dataSourceHost, httpGetPort)){
+        if(clientGet.connect(data_source_host, httpGetPort)){
          //timeOffset = timeOffset + timeSkewAmount; //in case two probes are stepping on each other, make this one skew a 20 seconds from where it tried to upload data
          clientGet.println("GET / HTTP/1.1");
          clientGet.print("Host: ");
-         clientGet.println(dataSourceHost);
+         clientGet.println(data_source_host);
          clientGet.println("User-Agent: ESP8266/1.0");
          clientGet.println("Accept-Encoding: identity");
          clientGet.println("Connection: close\r\n\r\n");
@@ -415,12 +415,12 @@ void getControlFormData() {
   }
   Serial.println(url);
   int attempts = 0;
-  while(!clientGet.connect(controlIpAddress, httpGetPort) && attempts < connectionRetryNumber) {
+  while(!clientGet.connect(controlIpAddress, httpGetPort) && attempts < connection_retry_number) {
     attempts++;
     delay(2);
   }
   Serial.println();
-  if (attempts >= connectionRetryNumber) {
+  if (attempts >= connection_retry_number) {
     Serial.print("Connection failed");
     connectionFailureTime = millis();
     connectionFailureMode = true;
@@ -469,7 +469,7 @@ void getControlFormData() {
         Serial.println(retLine);
       }
     }
-  } //if (attempts >= connectionRetryNumber)....else....    
+  } //if (attempts >= connection_retry_number)....else....    
   Serial.println("\r>>> Closing host for json: ");
   Serial.println(controlIpAddress);
   clientGet.stop();
@@ -505,9 +505,9 @@ void updateScreen(String json, char startLine, bool withInit) { //handles the di
     lcd.print("Current Weather");
     if (oldTemperatureValue == -100) { //this condition a proxy for there being no old weather data
       directionIndication = ' ';
-    } else if(oldTemperatureValue-temperatureValue > temperatureDeltaForChange) {//we want a change in temperature to be at least as big as temperatureDeltaForChange to produce a change arrow
+    } else if(oldTemperatureValue-temperatureValue > temperature_delta_for_change) {//we want a change in temperature to be at least as big as temperature_delta_for_change to produce a change arrow
       directionIndication  = 'v';
-    } else if (oldTemperatureValue-temperatureValue < -temperatureDeltaForChange) {
+    } else if (oldTemperatureValue-temperatureValue < -temperature_delta_for_change) {
       directionIndication  = '^';
     } else {
       directionIndication  = '=';
@@ -521,9 +521,9 @@ void updateScreen(String json, char startLine, bool withInit) { //handles the di
     lcd.print("deg F");
     if (oldTemperatureValue == -100) { //this condition a proxy for there being no old weather data
       directionIndication = ' ';
-    } else if(oldPressureValue - pressureValue > pressureDeltaForChange) {//we want a change in pressure to be at least as big as pressureDeltaForChange to produce a change arrow
+    } else if(oldPressureValue - pressureValue > pressure_delta_for_change) {//we want a change in pressure to be at least as big as pressure_delta_for_change to produce a change arrow
       directionIndication  = 'v';
-    } else if (oldPressureValue - pressureValue < -pressureDeltaForChange) {
+    } else if (oldPressureValue - pressureValue < -pressure_delta_for_change) {
       directionIndication  = '^';
     } else {
       directionIndication  = '=';
@@ -537,9 +537,9 @@ void updateScreen(String json, char startLine, bool withInit) { //handles the di
     lcd.print("mm Hg");
     if (oldTemperatureValue == -100) { //this condition a proxy for there being no old weather data
       directionIndication = ' ';
-    } else if(oldHumidityValue - humidityValue > humidityDeltaForChange) { //we want a change in humidity to be at least as big as humidityDeltaForChange to produce a change arrow
+    } else if(oldHumidityValue - humidityValue > humidity_delta_for_change) { //we want a change in humidity to be at least as big as humidity_delta_for_change to produce a change arrow
       directionIndication  = 'v';
-    } else if (oldHumidityValue - humidityValue < -humidityDeltaForChange) {
+    } else if (oldHumidityValue - humidityValue < -humidity_delta_for_change) {
       directionIndication  = '^';
     } else {
       directionIndication  = '=';
@@ -768,7 +768,7 @@ void buttonPushed() {
     val = digitalRead(hardwarePinNumber);
     
     if(val == 1) {
-      if(millis() - backlightOnTime > backlightTimeout * 1000) {
+      if(millis() - backlightOnTime > backlight_timeout * 1000) {
         skipButtonFunction = true; //if we're in LCD blackout, don't do button function, just turn on backlight
       }
       
