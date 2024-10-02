@@ -82,7 +82,7 @@ void setup(){
   lcd.print("Starting...");
   WiFiConnect();
  
-  enableInterripts();
+  enableInterrupts();
  
   EEPROM.begin(sizeof(nonVolatileStruct));
   if(EEPROM.percentUsed()>=0) {
@@ -142,6 +142,7 @@ void loop(){
         updateTimes[modePower] = millis();
       } 
       if(updateTimes[modeDeviceSwitcher] == 0 || millis() - updateTimes[0] > pollingGranularity * 1000) {
+        Serial.println("get form data");
         getControlFormData();
         updateTimes[modeDeviceSwitcher] = millis();
       }
@@ -412,10 +413,11 @@ void getControlFormData() {
   } else {
     url =  (String)"/readLocalData";
   }
+  Serial.println(url);
   int attempts = 0;
   while(!clientGet.connect(controlIpAddress, httpGetPort) && attempts < connectionRetryNumber) {
     attempts++;
-    delay(100);
+    delay(2);
   }
   Serial.println();
   if (attempts >= connectionRetryNumber) {
@@ -448,7 +450,7 @@ void getControlFormData() {
         return;
        } //if( millis() -  
      }
-    delay(2); //see if this improved data reception. OMG IT TOTALLY WORKED!!!
+    delay(1); //see if this improved data reception. OMG IT TOTALLY WORKED!!!
     bool receivedData = false;
     bool receivedDataJson = false;
     while(clientGet.available()){
@@ -491,6 +493,7 @@ void splitString(const String& input, char delimiter, String* outputArray, int a
 }
 
 void updateScreen(String json, char startLine, bool withInit) { //handles the display of everything
+  disableInterrupts();
   allowInterrupts = false;
   bool showTimingDebugInfo = false;
   lcd.clear();
@@ -641,6 +644,7 @@ void updateScreen(String json, char startLine, bool withInit) { //handles the di
     }
   }
   allowInterrupts = true;
+  enableInterrupts();
 }
 
 void moveCursorUp(){
@@ -660,6 +664,7 @@ void moveCursorUp(){
   if(menuBegin > 0) {
     //scroll screen up:
     menuBegin--;
+    menuCursor--;
     updateScreen("", menuBegin, false);
   } else {
     menuCursor--;
@@ -670,9 +675,10 @@ void moveCursorUp(){
     }
   }
   if(menuCursor == totalScreenLines) {
-    menuCursor = totalScreenLines - 1;
+    //menuCursor = totalScreenLines - 1;
   }
-  lcd.setCursor(0, menuCursor);
+  //lcd.setCursor(0, menuCursor);
+  lcd.setCursor(0, (menuCursor - menuBegin));
   lcd.print(">");
   Serial.println((int)menuCursor);
 }
@@ -740,12 +746,12 @@ void advanceMode() {
 }
  
 void buttonPushed() {
+  //Serial.print("button pushed ");
+  //Serial.println(allowInterrupts);
   if(!allowInterrupts) {
     return;
   }
-  for(char i=0; i<buttonNumber; i++) {
-    detachInterrupt(digitalPinToInterrupt(buttonPins[i]));
-  }
+  disableInterrupts();
   boolean skipButtonFunction = false;
   if(lastTimeButtonPushed == 0 || millis() - lastTimeButtonPushed > 150) { //150 millisecond debounce
     lastTimeButtonPushed = millis();
@@ -783,10 +789,16 @@ void buttonPushed() {
     }
   }
   backlightOn();
-  enableInterripts();
+  enableInterrupts();
 }
 
-void enableInterripts() {
+void disableInterrupts(){
+  for(char i=0; i<buttonNumber; i++) {
+    detachInterrupt(digitalPinToInterrupt(buttonPins[i]));
+  }
+}
+
+void enableInterrupts(){
    for(char i=0; i<buttonNumber; i++) {
     pinMode(buttonPins[i], OUTPUT);
     attachInterrupt(digitalPinToInterrupt(buttonPins[i]), buttonPushed, RISING);
