@@ -413,11 +413,10 @@ void getControlFormData() {
   } else {
     url =  (String)"/readLocalData";
   }
-  Serial.println(url);
   int attempts = 0;
   while(!clientGet.connect(controlIpAddress, httpGetPort) && attempts < connection_retry_number) {
     attempts++;
-    delay(2);
+    delay(200);
   }
   Serial.println();
   if (attempts >= connection_retry_number) {
@@ -428,6 +427,7 @@ void getControlFormData() {
      connectionFailureTime = 0;
      connectionFailureMode = false;
      Serial.println(url);
+     delay(50);
      clientGet.println("GET " + url + " HTTP/1.1");
      clientGet.print("Host: ");
      clientGet.println(controlIpAddress);
@@ -450,7 +450,7 @@ void getControlFormData() {
         return;
        } //if( millis() -  
      }
-    delay(3); //see if this improved data reception. OMG IT TOTALLY WORKED!!!
+    delay(30); //see if this improved data reception. OMG IT TOTALLY WORKED!!!
     bool receivedData = false;
     bool receivedDataJson = false;
     while(clientGet.available()){
