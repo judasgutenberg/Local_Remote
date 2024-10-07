@@ -342,7 +342,7 @@ void getEnergyInfo() { //goes on the internet to get the latest solar energy dat
   WiFiClient clientGet;
   const int httpGetPort = 80;
   String url;
-  url = "/weather/data.php?storage_password=" + (String)storage_password + "&mode=getEnergyInfo";
+  url = "/weather/data.php?storagePassword=" + (String)storage_password + "&mode=getEnergyInfo";
 
   char * data_source_host = "randomsprocket.com";
   int attempts = 0;
