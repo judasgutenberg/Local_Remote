@@ -450,7 +450,7 @@ void getControlFormData() {
         return;
        } //if( millis() -  
      }
-    delay(1); //see if this improved data reception. OMG IT TOTALLY WORKED!!!
+    delay(3); //see if this improved data reception. OMG IT TOTALLY WORKED!!!
     bool receivedData = false;
     bool receivedDataJson = false;
     while(clientGet.available()){
