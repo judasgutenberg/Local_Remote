@@ -936,19 +936,7 @@ void startWebSocket(int origin){
 
  
 
-void saveCommandState(uint32_t lastCommandLogId, uint16_t version, int32_t commandId, int32_t commandType) {
-    File file = LittleFS.open(F("/commandstate.txt"), "w");
-    if (!file) {
-        // optional: Serial.println("Failed to open file for writing");
-        return;
-    }
-    file.println(lastCommandLogId);
-    file.println(version);
-    file.println(commandId);
-    file.println(commandType);
-    file.close();
-}
-
+ 
 
 
 ///////////////////////////////////////////////
@@ -979,9 +967,9 @@ void runCommand(const char * commandText, bool deferred){
   commandId = commandArray[0].toInt();
   command = commandArray[1];
   commandData = commandArray[2];
-  latencyCount++;
+ 
   latency = commandArray[3].toInt();
-  latencySum += latency;
+ 
   //Serial.println(commandId);
   if(commandId < -1) {
     /*
@@ -1021,9 +1009,7 @@ void runCommand(const char * commandText, bool deferred){
       notYetDeferred(commandText, commandId, (int32_t)(command.indexOf(F("update firmware"))>-1));
     }
     command = "";
-    if(commandId > 0) { //don't reset lastCommandId if the command came via serial port
-      lastCommandId = commandId;
-    }
+  
   }
 }
 
@@ -1041,22 +1027,8 @@ void handleCommand(String input, bool deferred) {
       // ?? Capability checks
  
  
- 
-      if ((cfg & CFG_REQ_IR) && !(ci[IR_PIN] > -1)) {
-        textOut(F("Error: IR capability required\n"));
-        return;
-      }
-      /*
-      // ? Deferred requirement check (if you want it enforced)
-      if ((cfg & CFG_REQ_DEFER) && !deferred) {
-        textOut(F("Error: Command must be deferred\n"));
-        return;
-      }
-      */
-      // ? All checks passed, execute
-      commands[i].handler(results, resultCount, deferred);
-      return;
     }
+ 
   }
   textOut(F("Command '") + input + F("' does not exist\n"));
 }

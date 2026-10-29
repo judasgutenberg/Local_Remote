@@ -471,8 +471,7 @@ void updateSlaveFirmware(String* param, int argCount, bool deferred) {
 }
 
 void getMasterEepromUsed(String* param, int argCount, bool deferred) {
-  int bytesUsed = loadAllConfigFromEEPROM(2, 0);
-  textOut(F("Slave EEPROM bytes used for master: ") + (String)bytesUsed + "\n");
+ 
 }
 
 void getSlaveEepromUsed(String* param, int argCount, bool deferred) {
@@ -514,9 +513,7 @@ void cmdSet(String* param, int argCount, bool deferred) {
     if(configIndex>=CONFIG_STRING_COUNT) {
       ci[configIndex] = value.toInt();
       //handle some specific sets in terms of what they do:
-      if(key.toInt() == I2C_SPEED) {
-        Wire.setClock(ci[I2C_SPEED] * 1000);
-      }
+ 
     } else {   
       char buffer[50];    
       value.toCharArray(buffer, sizeof(buffer));

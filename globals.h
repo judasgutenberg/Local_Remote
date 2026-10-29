@@ -97,6 +97,7 @@ extern uint32_t lastCommandLogId;
 extern String lastGoodKey;
 extern String fileToUpload;
 extern uint32_t fileUploadPosition;
+extern char * deferredCommand;
 
 extern WebSocketsClient webSocket;
 extern WiFiUDP ntpUDP;

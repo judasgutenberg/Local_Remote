@@ -74,6 +74,7 @@ uint32_t lastCommandLogId = 0;
 String lastGoodKey = "";
 String fileToUpload;
 uint32_t fileUploadPosition = 0;
+char * deferredCommand = nullptr;
 
 WebSocketsClient webSocket;
 WiFiUDP ntpUDP; //i guess i need this for time lookup

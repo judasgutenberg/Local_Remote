@@ -1,7 +1,7 @@
 void compileAndSendDeviceData(const String& weatherData, const String& whereWhenData, const String& powerData, bool doPinCursorChanges, uint16_t fRAMOrdinal);
 void startWeatherSensors(int sensorIdLocal, int sensorSubTypeLocal, int i2c, int pinNumber, int powerPin);
 void cleanup();
-void notYetDeferred();
+
  
 void sendIr(String rawDataStr);
 void serialSwap(int8_t value);
@@ -20,3 +20,11 @@ void rtcMarkStable();
 
 void rebootEsp();
 int freeMemory();
+
+
+
+void notYetDeferred(const char * commandText, int commandId, int commandType);
+void saveCommandState(uint32_t lastCommandLogId, uint16_t version, int32_t commandId, int32_t commandType);
+bool commandRequiresDeferment(String input) ;
+bool parseCommand(const String& input, const String& command, String* results, int& resultCount, int maxResults);
+int32_t loadCommandStateVersion(int dataToReturn) ;
